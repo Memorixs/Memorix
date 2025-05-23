@@ -62,4 +62,14 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 		return CustomUserDetails.of(user);
 	}
 
+	public void login(User user) {
+		User findUser = userRepository.findByProviderId(user.getProviderId()).orElseGet(() -> {
+			User newUser = userRepository.save(user);
+			return newUser;
+		});
+
+		log.info("User {}", user.toString());
+		//이미 존재하는 회원이면 로그인 진행 -> 토큰 발급
+	}
+
 }

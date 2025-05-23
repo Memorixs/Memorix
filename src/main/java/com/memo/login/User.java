@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.memo.common.Role;
 import com.memo.login.oauth.OAuthUser;
+import com.memo.login.oauth.kakao.KakaoInfo;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -38,6 +39,13 @@ public class User {
 	@Setter
 	private Role role;
 
+	@Setter
+	private String refreshToken;
+	@Setter
+	private String refreshTokenExpires; //초단위
+	@Setter
+	private String accessToken;
+
 	@PrePersist
 	public void perPersist() {
 		if(isBlacklist == null) {
@@ -69,5 +77,11 @@ public class User {
 	public static User from(OAuthUser oAuthUser) {
 		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg());
 	}
+
+	public static User from(KakaoInfo oAuthUser) {
+		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null);
+	}
+
+
 
 }

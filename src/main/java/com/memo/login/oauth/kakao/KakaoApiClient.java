@@ -1,0 +1,139 @@
+package com.memo.login.oauth.kakao;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.memo.login.User;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+@Slf4j
+public class KakaoApiClient {
+
+	static final String authUrl = "https://kauth.kakao.com/oauth/authorize";
+	private static final String tokenUrl = "https://kauth.kakao.com/oauth/token";
+	private static final String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
+	private static final String redirectUrl = "http://localhost:8080/login/oauth2/code/kakao";
+
+	private ObjectMapper objectMapper;
+	private RestTemplate restTemplate;
+	private String clientId;
+
+	public KakaoApiClient(@Value("${spring.security.oauth2.client.registration.kakao.client-id}") String clientId,
+		ObjectMapper objectMapper, RestTemplate restTemplate ) {
+		this.clientId = clientId;
+		this.objectMapper = objectMapper;
+		this.restTemplate = restTemplate;
+	}
+
+
+
+	public String authServerRequest() {
+		//google api와 통신하기 위한 요청 만들기(승인 코드를 받기 위한 요청) //
+		// authorizationCodeFlow.loadCredential(String);
+		Map<String, String> params = new HashMap<>();
+		params.put("client_id", clientId);
+		params.put("redirect_uri", redirectUrl);
+		params.put("response_type", "code");
+		// params.put("scope", "profile_nickname");
+
+		// params.put("state", createCSRFToken())
+		String parameterString=params.entrySet().stream()
+			.map(x->x.getKey()+"="+x.getValue())
+			.collect(Collectors.joining("&"));
+		String redirectURL=authUrl+"?"+parameterString;
+		log.info("redirect-URL={}", redirectURL);
+		return redirectURL;
+	}
+
+	public User oAuthLogin(String code) throws JsonProcessingException {
+		ResponseEntity<String> response = requestAccessToken(code);
+		KakaoTokenResponse oAuthResponse = getAccessToken(response);
+		//토큰 저장
+
+		log.info("accessToken: {}", oAuthResponse.getAccessToken());
+		// GoogleOAuthResponse googleOAuthToken =socialOauth.getAccessToken(accessToken);
+		//
+		KakaoInfo kakaoUser = requestUserInfo(oAuthResponse.getAccessToken());
+		//
+		//
+		String user_id = kakaoUser.getId();
+		//
+
+		log.info("login user: {}", kakaoUser.toString());
+		// return new GetSocialOAuthRes("1234",1,"asdf", googleOAuthToken.getToken_type());
+		User user = User.from(kakaoUser);
+		user.setRefreshToken(oAuthResponse.getRefreshToken());
+		user.setAccessToken(oAuthResponse.getAccessToken());
+		user.setRefreshTokenExpires(oAuthResponse.getRefreshTokenExpiresIn());
+
+
+		return user;
+	}
+
+	public ResponseEntity<String> requestAccessToken(String code) {
+		RestTemplate restTemplate = new RestTemplate();
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("grant_type", "authorization_code");
+		body.add("client_id", clientId);
+		body.add("redirect_uri", redirectUrl);
+		body.add("code", code);
+		// client_secret이 필요한 경우 추가
+		// body.add("client_secret", clientSecret);
+
+		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
+		log.info("response: {}", response.toString());
+		return response;
+	}
+	private KakaoTokenResponse getAccessToken(ResponseEntity<String> response) throws JsonProcessingException {
+		log.info("accessTokenBody: {}",response.getBody());
+		return objectMapper.readValue(response.getBody(), KakaoTokenResponse.class);
+	}
+
+	private KakaoInfo requestUserInfo(String token) {
+		// HttpHeaders headers = new HttpHeaders();
+
+		// HttpEntity<MultiValueMap<String,String>> request = new HttpEntity<>(headers);
+		// headers.add("Authorization","Bearer "+ token);
+		// ResponseEntity<String> exchange = restTemplate.exchange(userInfoUrl, HttpMethod.GET, request, String.class);
+		// System.out.println(exchange.getBody());
+
+		HttpHeaders httpHeaders = new HttpHeaders();
+		httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+		httpHeaders.set("Authorization", "Bearer " + token);
+
+		// Request entity 생성
+		HttpEntity<?> userInfoEntity = new HttpEntity<>(httpHeaders);
+		ResponseEntity<KakaoInfo> response = restTemplate.postForEntity(userInfoUrl, userInfoEntity, KakaoInfo.class);
+		log.info("kakao userInfo: {}", response.toString());
+		return response.getBody();
+	}
+
+	// private KakaoUser getUserInfo(KakaoUser response) throws JsonProcessingException {
+	// 	log.info("Response Body: {}",response.toString());
+	//
+	// 	return objectMapper.readValue(response.getBody(), KakaoUser.class);
+	// }
+}

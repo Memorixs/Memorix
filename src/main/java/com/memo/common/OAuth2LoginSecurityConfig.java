@@ -17,6 +17,9 @@ import com.memo.login.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.client.RestTemplate;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -32,6 +35,11 @@ public class OAuth2LoginSecurityConfig {
 	private final UserRepository userRepository;
 
 	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
+
+	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 			.csrf((csrf) -> csrf.disable()) //GET 이외의 요청 허용하기 위해
@@ -39,20 +47,30 @@ public class OAuth2LoginSecurityConfig {
 			.sessionManagement((session) -> session
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
-				// .requestMatchers(new AntPathRequestMatcher("")).permitAll()
+				.requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
+				.requestMatchers(new AntPathRequestMatcher("/*")).permitAll()
+				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll()
 
 				.anyRequest().authenticated())
 
-			.oauth2Login(oauth2 -> oauth2
-				.userInfoEndpoint(userInfo -> userInfo
-					.userService(customOAuthService)
-				)
-				.successHandler(customOAuth2SuccessHandler)
-				.failureHandler(customOAuth2FailureHandler)
+			// .oauth2Login(oauth2 -> oauth2
+			// 	// .userInfoEndpoint(userInfo -> userInfo
+			// 	// 	.userService(customOAuthService)
+			// 	// )
+			// 	.loginProcessingUrl("/login/oauth2")
+			// 	.successHandler(customOAuth2SuccessHandler)
+			// 	.failureHandler(customOAuth2FailureHandler))
+			// .logout(logout -> logout
+			// 	.logoutUrl("/logout")
+			// 	.logoutSuccessUrl("/")
+			// 	.invalidateHttpSession(true)
+			// 	.deleteCookies("refresh-token"))
+
 				// .defaultSuccessUrl("/test")
-			)
+
 			//필터 추가
-			.addFilterBefore(new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository), UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
+			.addFilterBefore(new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository),
+				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
 
 
 
