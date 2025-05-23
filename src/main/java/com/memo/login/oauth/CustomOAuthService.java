@@ -7,6 +7,9 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import com.memo.common.CustomUserDetails;
+import com.memo.common.JwtFilter;
+import com.memo.common.Role;
 import com.memo.login.repository.UserRepository;
 import com.memo.login.User;
 
@@ -21,6 +24,7 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 	private final UserRepository userRepository;
 	private final OAuthService googleOAuthService;
 	private final OAuthService kakaoOAuthService;
+	// private final JwtFilter jwtFilter;
 
 	@Override
 	public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -41,14 +45,17 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 		log.info(oAuthUser.toString());
 
 		//회원가입 했는지 확인
+		User user = null;
 		if(!userRepository.findByUsername(oAuthUser.getUsername()).isPresent()) {
 			//존재하지 않으면 회원가입
-			User user = User.from(oAuthUser);
-			userRepository.save(user);
+			User newUser = User.from(oAuthUser);
+			newUser.setRole(Role.USER);
+			user = userRepository.save(newUser);
 		}
 		//이미 존재하는 회원이면 로그인 진행 -> 토큰 발급
+		// String token = jwtFilter.create(user.getRole().toString(), String.valueOf(user.getId()));
 
-		return oAuth2User;
+		return CustomUserDetails.of(user);
 	}
 
 }

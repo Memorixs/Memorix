@@ -2,6 +2,7 @@ package com.memo.login;
 
 import java.time.LocalDateTime;
 
+import com.memo.common.Role;
 import com.memo.login.oauth.OAuthUser;
 
 import jakarta.persistence.Entity;
@@ -11,6 +12,7 @@ import jakarta.persistence.Id; //
 import jakarta.persistence.PrePersist;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
 @Getter
@@ -33,6 +35,8 @@ public class User {
 	private Boolean status;
 	private Integer warning_count;
 	private String providerId;
+	@Setter
+	private Role role;
 
 	@PrePersist
 	public void perPersist() {
