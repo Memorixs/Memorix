@@ -45,15 +45,19 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 		log.info(oAuthUser.toString());
 
 		//회원가입 했는지 확인
-		User user = null;
-		if(!userRepository.findByUsername(oAuthUser.getUsername()).isPresent()) {
-			//존재하지 않으면 회원가입
+		String providerId = oAuthUser.getId();
+
+		//회원이 없으면 회원가입
+		User user = userRepository.findByProviderId(providerId).orElseGet(() -> {
 			User newUser = User.from(oAuthUser);
 			newUser.setRole(Role.USER);
-			user = userRepository.save(newUser);
-		}
+			userRepository.save(newUser);
+			return newUser;
+		});
+
+		log.info("User {}", user.toString());
 		//이미 존재하는 회원이면 로그인 진행 -> 토큰 발급
-		// String token = jwtFilter.create(user.getRole().toString(), String.valueOf(user.getId()));
+
 
 		return CustomUserDetails.of(user);
 	}

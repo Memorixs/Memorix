@@ -13,7 +13,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.memo.login.User;
+import com.memo.login.repository.UserRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -25,6 +29,7 @@ import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -32,14 +37,20 @@ import lombok.extern.slf4j.Slf4j;
 // @Component
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
+	// private static List<String> tokenList = new LinkedList<>();
+	//리프레시 토큰 저장할때가 로그인할때임
 	private static final String AUTHORIZATION = "Authorization";
 	private static final String HEADER_STRING = "Bearer";
 	private final SecretKey secretKey;
 	private final UserDetailsService customUserDetailsService;
+	private final RefreshTokenStore refreshTokenStore;
+	private final UserRepository userRepository;
 
-	public JwtFilter(JwtProperties jwtProperties, UserDetailsService customUserDetailsService) {
+	public JwtFilter(JwtProperties jwtProperties, UserDetailsService customUserDetailsService, RefreshTokenStore refreshTokenStore, UserRepository userRepository) {
 		this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(jwtProperties.getSecretKey()));
 		this.customUserDetailsService = customUserDetailsService;
+		this.refreshTokenStore = refreshTokenStore;
+		this.userRepository = userRepository;
 	}
 	//공식문서에 Filter를 구현하기보다	 OncePerRequestFilter 를 확장하라고 되어 있다. -> 각 요청당 한번만 invoke된다. 그리고 dofilterInternal이 HttpServletRequest HttpServletResponse 제공
 	//Filter는 그냥 ServletRequest 을 제공
@@ -50,15 +61,53 @@ public class JwtFilter extends OncePerRequestFilter {
 		//토큰 꺼내기
 		String jwt = null;
 		jwt = request.getHeader(AUTHORIZATION);
-
-		if (jwt == null || jwt.startsWith(HEADER_STRING)) {
+		log.info("jwt: {}", jwt);
+		if (jwt == null || !jwt.startsWith(HEADER_STRING)) {
 			filterChain.doFilter(request, response);
 			return;
 		}
-		String token = jwt.replace(HEADER_STRING, "");
+		// String token = jwt.replace(HEADER_STRING, "");
+		String token = resolveToken(jwt);
+		log.info("get AccessToken from header: {}", token);
+
 		//해시알고리즘으로 signature 암호화
-		String id = validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
-		setAuthentication(id);
+		String result = validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
+		if (result.equals("EXPIRED")) {
+			//만료된 토큰은 리프레시토큰을 활용해서 토큰 발급
+			//요청마다 securityContextHolder는 clear된다 -
+			String refreshToken = null;
+			for(Cookie cookie : request.getCookies()) {
+				if (cookie.getName().equals("refresh-token")) {
+					refreshToken = cookie.getValue();
+					if(refreshTokenStore.containsKey(refreshToken)) {
+						//id가지고 토큰 생성
+						String refresh = validate(refreshToken);
+						if (refresh.equals("EXPIRED")) {
+							//예외: 재로그인
+
+						}
+						//디비에서 유저 정보 조회
+						String id = refreshTokenStore.get(refreshToken);
+						Long longId = Long.parseLong(id);
+						User user = userRepository.findById(longId).orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+						String accessToken = create(user.getRole().name(), id, Date.from(
+							Instant.now().plus(1, ChronoUnit.WEEKS)));
+
+						//엑세스토큰 헤더에 넣어주기
+						response.setHeader("Authorization", accessToken);
+
+					}
+					// getRefreshToken(refreshToken);
+				}
+			}
+
+
+			//디비에서 리프레시 토큰 찾기 -> 일단 인메모리로
+			//linkedList사용한 이유: 리프레시 기간 1주일이라고 하면 1주일에 한번씩을 삽입삭제가 일어날것,
+			// tokenList.stream().filter(each -> each.equals(refreshToken));
+
+		}
+		setAuthentication(result);
 
 		//다음 필터
 		filterChain.doFilter(request, response);
@@ -77,19 +126,20 @@ public class JwtFilter extends OncePerRequestFilter {
 
 			Jws<Claims> claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
 			String subject = claims.getPayload().getSubject();
-			return subject;
+			return subject; //userId
 			//OK, we can trust this JWT
 
 		} catch (ExpiredJwtException e) {
-
+			e.getStackTrace();
 			return "EXPIRED";
 			//don't trust the JWT!
 		} catch (JwtException e) {
+			e.getStackTrace();
 			return "EXCEPTION";
 		}
 	}
 
-	public String create(String role, String id){
+	public String create(String role, String id, Date expired){
 		log.info("Create Token with {} and {}", role, id);
 
 		MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
@@ -120,7 +170,7 @@ public class JwtFilter extends OncePerRequestFilter {
 			// .issuer("me")
 			.subject(id)//사용자id
 			// .audience().add("you").and()
-			.expiration(Date.from(Instant.now().plus(3, ChronoUnit.HOURS))) //a java.util.Date
+			.expiration(expired) //a java.util.Date
 			// .notBefore(notBefore) //a java.util.Date
 			.issuedAt(new Date()) // for example, now
 			.id(UUID.randomUUID().toString()) //just an example id
@@ -131,4 +181,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
 			.compact();                                 // (5)
 	}
+
+	private String resolveToken(String token) {
+		if (StringUtils.hasText(token) && token.startsWith(HEADER_STRING)) {
+			return token.substring(7);
+		}
+		return null;
+	}
+
 }
