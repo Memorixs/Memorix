@@ -76,22 +76,23 @@ public class JwtFilter extends OncePerRequestFilter {
 			//만료된 토큰은 리프레시토큰을 활용해서 토큰 발급
 			//요청마다 securityContextHolder는 clear된다 -
 			String refreshToken = null;
+			User user = null;
 			for(Cookie cookie : request.getCookies()) {
 				if (cookie.getName().equals("refresh-token")) {
 					refreshToken = cookie.getValue();
-					if(refreshTokenStore.containsKey(refreshToken)) {
-						//id가지고 토큰 생성
-						String refresh = validate(refreshToken);
-						if (refresh.equals("EXPIRED")) {
-							//예외: 재로그인
+					String refresh = validate(refreshToken);
+					Long userId = Long.valueOf(refresh);
+					if (refresh.equals("EXPIRED")) {
+						//예외: 재로그인
 
-						}
+					}
+					else if(refreshTokenStore.containsKey(userId)) {
+						//id가지고 토큰 생성
+
 						//디비에서 유저 정보 조회
-						String id = refreshTokenStore.get(refreshToken);
-						Long longId = Long.parseLong(id);
-						User user = userRepository.findById(longId).orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
-						String accessToken = create(user.getRole().name(), id, Date.from(
-							Instant.now().plus(1, ChronoUnit.WEEKS)));
+
+						user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
+						String accessToken = create(user.getRole().name(), user.getId(), Date.from(Instant.now().plus(3, ChronoUnit.HOURS)));
 
 						//엑세스토큰 헤더에 넣어주기
 						response.setHeader("Authorization", accessToken);
@@ -101,7 +102,7 @@ public class JwtFilter extends OncePerRequestFilter {
 				}
 			}
 
-
+			result = String.valueOf(user.getId());
 			//디비에서 리프레시 토큰 찾기 -> 일단 인메모리로
 			//linkedList사용한 이유: 리프레시 기간 1주일이라고 하면 1주일에 한번씩을 삽입삭제가 일어날것,
 			// tokenList.stream().filter(each -> each.equals(refreshToken));
@@ -139,7 +140,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		}
 	}
 
-	public String create(String role, String id, Date expired){
+	public String create(String role, Long id, Date expired){
 		log.info("Create Token with {} and {}", role, id);
 
 		MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
@@ -168,7 +169,7 @@ public class JwtFilter extends OncePerRequestFilter {
 				jti: JWT의 고유 식별자로서, 주로 중복적인 처리를 방지하기 위하여 사용됩니다. 일회용 토큰에 사용하면 유용합니다.
 * */
 			// .issuer("me")
-			.subject(id)//사용자id
+			.subject(String.valueOf(id))//사용자id
 			// .audience().add("you").and()
 			.expiration(expired) //a java.util.Date
 			// .notBefore(notBefore) //a java.util.Date

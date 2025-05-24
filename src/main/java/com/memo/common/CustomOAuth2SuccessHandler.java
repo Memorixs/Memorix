@@ -40,12 +40,12 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		log.info("succcess handler의 userDetails: {}", userDetails.toString());
 		JwtFilter jwtFilter = new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository);
 		//성공필터에서 토큰 발급해주기,
-		String accessToken = jwtFilter.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(
+		String accessToken = jwtFilter.create(user.getRole().name(), user.getId(), Date.from(
 			Instant.now().plus(3, ChronoUnit.HOURS)));
-		String refreshToken = jwtFilter.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(
+		String refreshToken = jwtFilter.create(user.getRole().name(), user.getId(), Date.from(
 			Instant.now().plus(7, ChronoUnit.DAYS)));
 		//리프레시 토큰은 스토리지에 저장
-		refreshTokenStore.save(refreshToken, String.valueOf(user.getId()));
+		refreshTokenStore.save(user.getId(), refreshToken);
 
 		//토큰 header에 넣어주기
 		response.setHeader("Authorization", "Bearer " + accessToken);
@@ -56,6 +56,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		cookie.setHttpOnly(true);
 		cookie.setMaxAge(7 * 24 * 60 * 60); //리프레시 토큰도 1주일
 		response.addCookie(cookie);
-
+		response.sendRedirect("/");
 	}
 }

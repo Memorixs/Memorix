@@ -48,28 +48,27 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 		String providerId = oAuthUser.getId();
 
 		//회원이 없으면 회원가입
-		User user = userRepository.findByProviderId(providerId).orElseGet(() -> {
-			User newUser = User.from(oAuthUser);
-			newUser.setRole(Role.USER);
-			userRepository.save(newUser);
-			return newUser;
-		});
+		User user = userRepository.findByProviderId(providerId)
+			.orElseGet(() -> {
+				User newUser = User.from(oAuthUser);
+				newUser.setRole(Role.USER);
+				userRepository.save(newUser);
+				return newUser;
+			});
 
 		log.info("User {}", user.toString());
 		//이미 존재하는 회원이면 로그인 진행 -> 토큰 발급
-
 
 		return CustomUserDetails.of(user);
 	}
 
-	public void login(User user) {
-		User findUser = userRepository.findByProviderId(user.getProviderId()).orElseGet(() -> {
+	public User login(User user) {
+		return userRepository.findByProviderId(user.getProviderId()).orElseGet(() -> {
 			User newUser = userRepository.save(user);
+			log.info("User {}", user.toString());
 			return newUser;
 		});
 
-		log.info("User {}", user.toString());
 		//이미 존재하는 회원이면 로그인 진행 -> 토큰 발급
 	}
-
 }

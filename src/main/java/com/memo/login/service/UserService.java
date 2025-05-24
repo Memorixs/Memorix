@@ -57,7 +57,7 @@ public class UserService {
 		String accessToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
 		String refreshToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
 		//리프레시 토큰은 스토리지에 저장
-		refreshTokenStore.save(refreshToken, String.valueOf(user.getId()));
+		refreshTokenStore.save(user.getId(), refreshToken);
 
 		//토큰 header에 넣어주기
 		response.setHeader("Authorization", "Bearer " + accessToken);
