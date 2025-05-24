@@ -42,7 +42,7 @@ public class User {
 	@Setter
 	private String refreshToken;
 	@Setter
-	private String refreshTokenExpires; //초단위
+	private Integer refreshTokenExpires; //초단위
 	@Setter
 	private String accessToken;
 

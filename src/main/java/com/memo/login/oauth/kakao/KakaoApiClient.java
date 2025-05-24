@@ -1,5 +1,7 @@
 package com.memo.login.oauth.kakao;
 
+import static org.springframework.security.config.Elements.*;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -8,11 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,16 +24,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.memo.common.Role;
 import com.memo.login.User;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
 public class KakaoApiClient {
-
+	private static final String LOGOUT = "https://kapi.kakao.com/v1/user/logout";
 	static final String authUrl = "https://kauth.kakao.com/oauth/authorize";
 	private static final String tokenUrl = "https://kauth.kakao.com/oauth/token";
 	private static final String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
 	private static final String redirectUrl = "http://localhost:8080/login/oauth2/code/kakao";
+	private static final String tokenInfoURL = "https://kapi.kakao.com/v1/user/access_token_info";
 
 	private ObjectMapper objectMapper;
 	private RestTemplate restTemplate;
@@ -63,8 +70,7 @@ public class KakaoApiClient {
 	}
 
 	public User oAuthLogin(String code) throws JsonProcessingException {
-		ResponseEntity<String> response = requestAccessToken(code);
-		KakaoTokenResponse oAuthResponse = getAccessToken(response);
+		KakaoTokenResponse oAuthResponse = requestAccessToken(code);
 		//토큰 저장
 
 		log.info("accessToken: {}", oAuthResponse.getAccessToken());
@@ -88,7 +94,7 @@ public class KakaoApiClient {
 		return user;
 	}
 
-	public ResponseEntity<String> requestAccessToken(String code) {
+	public KakaoTokenResponse requestAccessToken(String code) {
 		RestTemplate restTemplate = new RestTemplate();
 
 		HttpHeaders headers = new HttpHeaders();
@@ -104,9 +110,9 @@ public class KakaoApiClient {
 
 		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-		ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
+		ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(tokenUrl, request, KakaoTokenResponse.class);
 		log.info("response: {}", response.toString());
-		return response;
+		return response.getBody();
 	}
 	private KakaoTokenResponse getAccessToken(ResponseEntity<String> response) throws JsonProcessingException {
 		log.info("accessTokenBody: {}",response.getBody());
@@ -114,6 +120,7 @@ public class KakaoApiClient {
 	}
 
 	private KakaoInfo requestUserInfo(String token) {
+		// lvLI6qji20bjm9IDpYyD3NJsJPTHEOQbAAAAAQoNFKMAAAGXAgKOYyn2EFsnJsRZ
 		// HttpHeaders headers = new HttpHeaders();
 
 		// HttpEntity<MultiValueMap<String,String>> request = new HttpEntity<>(headers);
@@ -133,9 +140,71 @@ public class KakaoApiClient {
 		return response.getBody();
 	}
 
-	// private KakaoUser getUserInfo(KakaoUser response) throws JsonProcessingException {
-	// 	log.info("Response Body: {}",response.toString());
-	//
-	// 	return objectMapper.readValue(response.getBody(), KakaoUser.class);
-	// }
+	public Result logout(String token, User user) {
+		int status = validateToken(token);
+		if (status == 401) {
+			String refreshToken = user.getRefreshToken();
+			KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
+			token = response.getAccessToken();
+		}
+		HttpHeaders header = new HttpHeaders();
+		header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+		header.set("Authorization", "Bearer " + token);
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("target_id_type", "user_id");
+		body.add("target_id", user.getProviderId());
+
+
+		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, header);
+		// Request entity 생성
+		ResponseEntity<Result> response = restTemplate.postForEntity(LOGOUT, request, Result.class);
+		log.info("kakao userInfo: {}", response.toString());
+		return response.getBody();
+	}
+
+	@Getter
+	static class Result {
+		Long id;
+	}
+
+	private int validateToken(String token) {
+		HttpHeaders header = new HttpHeaders();
+		header.set("Authorization", "Bearer " + token);
+		HttpEntity<?> request = new HttpEntity<>(header);
+		ResponseEntity<KakaoTokenInfo> response = null;
+		try {
+			response = restTemplate.exchange(
+				tokenInfoURL,           // 요청 URL
+				HttpMethod.GET,         // HTTP 메서드
+				request,                 // HttpEntity (헤더 포함)
+				KakaoTokenInfo.class            // 응답을 매핑할 클래스
+			);
+		} catch(HttpClientErrorException e) {
+			if(e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+				return HttpStatus.UNAUTHORIZED.value();
+			}
+		}
+
+		log.info("token info: {}", response.toString());
+		return response.getStatusCode().value();
+	}
+
+	private KakaoTokenResponse requestAccessTokenWithRefreshToken(String refreshToken) {
+		HttpHeaders httpHeaders = new HttpHeaders();
+		httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("grant_type", "refresh_token");
+		body.add("client_id", clientId);
+		body.add("refresh_token", refreshToken);
+		log.info("get new access Token: {}", body.toString());
+
+
+		// Request entity 생성
+		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, httpHeaders);
+		ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(tokenUrl, request, KakaoTokenResponse.class);
+		return response.getBody();
+	}
 }

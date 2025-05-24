@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
-	private static final String LOGOUT = "https://kapi.kakao.com/v1/user/logout";
+
 	private final UserRepository userRepository;
 	private final KakaoApiClient kakaoApiClient;
 	private final CustomOAuthService customOAuthService;
@@ -40,33 +40,13 @@ public class UserService {
 	private final RefreshTokenStore refreshTokenStore;
 
 
-	public String request(User user, HttpServletResponse response) {
-		// oAuthTokenStore.get(user.getId())
-		User findUser = userRepository.findById(user.getId())
-			.orElseThrow(() -> new RuntimeException("회원정보가 존재하지 않습니다."));
-		String accessToken = findUser.getAccessToken();
-		response.setHeader("Authorization", "Bearer " + accessToken);
-
-		//response body
-		Map<String, String> params = new HashMap<>();
-		params.put("user_id", "user_id");
-		params.put("target_id", user.getProviderId());
-		String parameterString=params.entrySet().stream()
-			.map(x->x.getKey()+"="+x.getValue())
-			.collect(Collectors.joining("&"));
-
-		String redirectURL=LOGOUT+"?"+parameterString;
-		log.info("redirect-URL={}", redirectURL);
-		return redirectURL;
-	}
-
 	public User oAuthLogin(String code, HttpServletResponse response) throws JsonProcessingException {
 		User user = kakaoApiClient.oAuthLogin(code);
 
-		customOAuthService.login(user);
+		User loginUser = customOAuthService.login(user);
 		//인증된 객체 넣어주고
-		setAuthentication(user); //굳이? 컨트롤러단에서 실행되는건데?
-		setResponseToken(user, response);
+		setAuthentication(loginUser); //굳이? 컨트롤러단에서 실행되는건데?
+		setResponseToken(loginUser, response);
 
 		return user;
 	}
@@ -96,6 +76,10 @@ public class UserService {
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 	}
 
-
-
+	//카카오 로그아웃
+	public void logout(User user) {
+		//엑세스토큰으로 요청
+		String accessToken = user.getAccessToken();
+		kakaoApiClient.logout(accessToken, user);
+	}
 }
