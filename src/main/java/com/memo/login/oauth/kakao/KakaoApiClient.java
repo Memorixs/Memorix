@@ -31,11 +31,12 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class KakaoApiClient {
-	private static final String LOGOUT = "https://kapi.kakao.com/v1/user/logout";
+	private static final String LOGOUT = "https://kauth.kakao.com/oauth/logout";
 	static final String authUrl = "https://kauth.kakao.com/oauth/authorize";
 	private static final String tokenUrl = "https://kauth.kakao.com/oauth/token";
 	private static final String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
 	private static final String redirectUrl = "http://localhost:8080/login/oauth2/code/kakao";
+	private static final String logoutRedirectUrl = "http://localhost:8080/logout/oauth2/kakao";
 	private static final String tokenInfoURL = "https://kapi.kakao.com/v1/user/access_token_info";
 
 	private ObjectMapper objectMapper;
@@ -140,7 +141,7 @@ public class KakaoApiClient {
 		return response.getBody();
 	}
 
-	public Result logout(String token, User user) {
+	public void logout(String token, User user) {
 		int status = validateToken(token);
 		if (status == 401) {
 			String refreshToken = user.getRefreshToken();
@@ -150,18 +151,22 @@ public class KakaoApiClient {
 		HttpHeaders header = new HttpHeaders();
 		header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		header.set("Authorization", "Bearer " + token);
-		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-		body.add("target_id_type", "user_id");
-		body.add("target_id", user.getProviderId());
+		// header.set("Authorization", "Bearer " + token);
+		String url = LOGOUT + "?client_id=" + clientId +
+			"&logout_redirect_uri=" + logoutRedirectUrl +
+			"&state=" + user.getId();
+
+		ResponseEntity<Void> response = restTemplate.exchange(
+			url,
+			HttpMethod.GET,
+			null,          // GET이므로 HttpEntity는 필요 없음
+			Void.class
+		);
+		log.info(response.toString());
+
+		} //logoutRedirectUrl로 리다이렉트
 
 
-		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, header);
-		// Request entity 생성
-		ResponseEntity<Result> response = restTemplate.postForEntity(LOGOUT, request, Result.class);
-		log.info("kakao userInfo: {}", response.toString());
-		return response.getBody();
-	}
 
 	@Getter
 	static class Result {
@@ -205,6 +210,7 @@ public class KakaoApiClient {
 		// Request entity 생성
 		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, httpHeaders);
 		ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(tokenUrl, request, KakaoTokenResponse.class);
+		log.info("토큰 갱신: {}", response.toString());
 		return response.getBody();
 	}
 }

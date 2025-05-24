@@ -50,6 +50,8 @@ public class OAuth2LoginSecurityConfig {
 				.requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
 				.requestMatchers(new AntPathRequestMatcher("/*")).permitAll()
 				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll()
+				.requestMatchers(new AntPathRequestMatcher("/logout/oauth2/kakao")).permitAll() //리다이렉트 허용
+
 
 				.anyRequest().authenticated())
 
