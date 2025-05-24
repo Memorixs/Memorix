@@ -21,6 +21,7 @@ import com.memo.common.CustomUserDetails;
 import com.memo.common.JwtFilter;
 import com.memo.common.RefreshTokenStore;
 import com.memo.common.TokenProvider;
+import com.memo.common.UtilString;
 import com.memo.login.User;
 import com.memo.login.oauth.CustomOAuthService;
 import com.memo.login.oauth.kakao.KakaoApiClient;
@@ -36,8 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
-
-	private final UserRepository userRepository;
 	private final KakaoApiClient kakaoApiClient;
 	private final CustomOAuthService customOAuthService;
 	private final TokenProvider tokenProvider;
@@ -64,14 +63,19 @@ public class UserService {
 		refreshTokenStore.save(user.getId(), refreshToken);
 
 		//토큰 header에 넣어주기
-		response.setHeader("Authorization", "Bearer " + accessToken);
+		response.setHeader(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);
 
 		//리프레시는 http only 쿠키에
-		Cookie cookie = new Cookie("refresh-token", refreshToken);
+		Cookie cookie = createCookie(refreshToken);
+		response.addCookie(cookie);
+	}
+
+	private static Cookie createCookie(String refreshToken) {
+		Cookie cookie = new Cookie(UtilString.COOKIE_NAME.value(), refreshToken);
 		cookie.setPath("/");
 		cookie.setHttpOnly(true);
 		cookie.setMaxAge(7 * 24 * 60 * 60); //리프레시 토큰도 1주일
-		response.addCookie(cookie);
+		return cookie;
 	}
 
 	private void setAuthentication(User user) {
@@ -83,15 +87,15 @@ public class UserService {
 	//카카오 로그아웃
 	public void logout(HttpServletRequest request, User user) {
 		//엑세스토큰으로 요청
-		String token = request.getHeader("Authorization");
-		String jwt = JwtFilter.resolveToken(token);
+		String token = request.getHeader(UtilString.AUTHORIZATION.value());
+		String jwt = TokenProvider.resolveToken(token);
 		String accessToken = user.getAccessToken();
 		kakaoApiClient.logout(accessToken, jwt, user);
 	}
 
 	public void deleteCookie(HttpServletResponse response) {
 
-		ResponseCookie deleteCookie = ResponseCookie.from("refresh-token", "")
+		ResponseCookie deleteCookie = ResponseCookie.from(UtilString.COOKIE_NAME.value(), "")
 			.path("/")
 			.httpOnly(false)
 			.secure(true)

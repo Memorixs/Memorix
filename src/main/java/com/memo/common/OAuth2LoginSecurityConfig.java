@@ -24,16 +24,9 @@ import org.springframework.web.client.RestTemplate;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class OAuth2LoginSecurityConfig {
-
-	private final OAuth2UserService  customOAuthService;
-	private final  JwtProperties jwtProperties;
-	// private final JwtFilter jwtFilter;
-	private final AuthenticationSuccessHandler customOAuth2SuccessHandler;
-	private final AuthenticationFailureHandler customOAuth2FailureHandler;
-	private final UserDetailsService customUserDetailsService;
 	private final RefreshTokenStore refreshTokenStore;
-	private final UserRepository userRepository;
 	private final TokenBlackListStore tokenBlackListStore;
+	private final TokenProvider tokenProvider;
 
 	@Bean
 	public RestTemplate restTemplate() {
@@ -49,37 +42,14 @@ public class OAuth2LoginSecurityConfig {
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
-				.requestMatchers(new AntPathRequestMatcher("/*")).permitAll()
-				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll()
-				.requestMatchers(new AntPathRequestMatcher("/logout/oauth2/kakao")).permitAll() //리다이렉트 허용
-
-
+				.requestMatchers(new AntPathRequestMatcher("/*")).permitAll() //메인 페이지 접근 허용
+				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll() //로그인 리다이렉트 허용
+				.requestMatchers(new AntPathRequestMatcher("/logout/oauth2/kakao")).permitAll() //로그아웃 리다이렉트 허용
 				.anyRequest().authenticated())
-
-			// .oauth2Login(oauth2 -> oauth2
-			// 	// .userInfoEndpoint(userInfo -> userInfo
-			// 	// 	.userService(customOAuthService)
-			// 	// )
-			// 	.loginProcessingUrl("/login/oauth2")
-			// 	.successHandler(customOAuth2SuccessHandler)
-			// 	.failureHandler(customOAuth2FailureHandler))
-			// .logout(logout -> logout
-			// 	.logoutUrl("/logout")
-			// 	.logoutSuccessUrl("/")
-			// 	.invalidateHttpSession(true)
-			// 	.deleteCookies("refresh-token"))
-
-				// .defaultSuccessUrl("/test")
-
 			//필터 추가
-			.addFilterBefore(new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository,  tokenBlackListStore),
+			.addFilterBefore(new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider),
 				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
-
-
-
 		return http.build();
 	}
-
-
 }
 

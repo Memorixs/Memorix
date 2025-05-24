@@ -26,11 +26,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
-	private final UserDetailsService customUserDetailsService;
 	private final RefreshTokenStore refreshTokenStore;
-	private final  JwtProperties jwtProperties;
-	private final UserRepository userRepository;
 	private final TokenBlackListStore tokenBlackListStore;
+	private final TokenProvider tokenProvider;
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -39,21 +37,21 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		CustomUserDetails userDetails = (CustomUserDetails)authentication.getPrincipal();
 		User user = userDetails.getUser();
 		log.info("succcess handler의 userDetails: {}", userDetails.toString());
-		JwtFilter jwtFilter = new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository,
-			tokenBlackListStore);
+		JwtFilter jwtFilter = new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider);
+
 		//성공필터에서 토큰 발급해주기,
-		String accessToken = jwtFilter.create(user.getRole().name(), user.getId(), Date.from(
+		String accessToken = tokenProvider.create(user.getRole().name(), user.getId(), Date.from(
 			Instant.now().plus(3, ChronoUnit.HOURS)));
-		String refreshToken = jwtFilter.create(user.getRole().name(), user.getId(), Date.from(
+		String refreshToken = tokenProvider.create(user.getRole().name(), user.getId(), Date.from(
 			Instant.now().plus(7, ChronoUnit.DAYS)));
 		//리프레시 토큰은 스토리지에 저장
 		refreshTokenStore.save(user.getId(), refreshToken);
 
 		//토큰 header에 넣어주기
-		response.setHeader("Authorization", "Bearer " + accessToken);
+		response.setHeader(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);
 
 		//리프레시는 http only 쿠키에
-		Cookie cookie = new Cookie("refresh-token", refreshToken);
+		Cookie cookie = new Cookie(UtilString.COOKIE_NAME.value(), refreshToken);
 		cookie.setPath("/");
 		cookie.setHttpOnly(true);
 		cookie.setMaxAge(7 * 24 * 60 * 60); //리프레시 토큰도 1주일

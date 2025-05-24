@@ -166,13 +166,6 @@ public class KakaoApiClient {
 
 		} //logoutRedirectUrl로 리다이렉트
 
-
-
-	@Getter
-	static class Result {
-		Long id;
-	}
-
 	private int validateToken(String token) {
 		HttpHeaders header = new HttpHeaders();
 		header.set("Authorization", "Bearer " + token);
