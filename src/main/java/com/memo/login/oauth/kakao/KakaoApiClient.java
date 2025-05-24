@@ -141,7 +141,7 @@ public class KakaoApiClient {
 		return response.getBody();
 	}
 
-	public void logout(String token, User user) {
+	public void logout(String token, String blackListToken, User user) {
 		int status = validateToken(token);
 		if (status == 401) {
 			String refreshToken = user.getRefreshToken();
@@ -154,7 +154,7 @@ public class KakaoApiClient {
 		// header.set("Authorization", "Bearer " + token);
 		String url = LOGOUT + "?client_id=" + clientId +
 			"&logout_redirect_uri=" + logoutRedirectUrl +
-			"&state=" + user.getId();
+			"&state=" + blackListToken;
 
 		ResponseEntity<Void> response = restTemplate.exchange(
 			url,

@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.memo.common.CustomOAuth2SuccessHandler;
 import com.memo.common.CustomUserDetails;
+import com.memo.common.JwtFilter;
 import com.memo.common.RefreshTokenStore;
 import com.memo.common.TokenProvider;
 import com.memo.login.User;
@@ -24,6 +27,7 @@ import com.memo.login.oauth.kakao.KakaoApiClient;
 import com.memo.login.repository.UserRepository;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,9 +81,24 @@ public class UserService {
 	}
 
 	//카카오 로그아웃
-	public void logout(User user) {
+	public void logout(HttpServletRequest request, User user) {
 		//엑세스토큰으로 요청
+		String token = request.getHeader("Authorization");
+		String jwt = JwtFilter.resolveToken(token);
 		String accessToken = user.getAccessToken();
-		kakaoApiClient.logout(accessToken, user);
+		kakaoApiClient.logout(accessToken, jwt, user);
+	}
+
+	public void deleteCookie(HttpServletResponse response) {
+
+		ResponseCookie deleteCookie = ResponseCookie.from("refresh-token", "")
+			.path("/")
+			.httpOnly(false)
+			.secure(true)
+			.sameSite("None")
+			.maxAge(0)
+			.build();
+
+		response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
 	}
 }

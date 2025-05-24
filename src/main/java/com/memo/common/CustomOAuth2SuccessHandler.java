@@ -30,6 +30,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 	private final RefreshTokenStore refreshTokenStore;
 	private final  JwtProperties jwtProperties;
 	private final UserRepository userRepository;
+	private final TokenBlackListStore tokenBlackListStore;
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -38,7 +39,8 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		CustomUserDetails userDetails = (CustomUserDetails)authentication.getPrincipal();
 		User user = userDetails.getUser();
 		log.info("succcess handler의 userDetails: {}", userDetails.toString());
-		JwtFilter jwtFilter = new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository);
+		JwtFilter jwtFilter = new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository,
+			tokenBlackListStore);
 		//성공필터에서 토큰 발급해주기,
 		String accessToken = jwtFilter.create(user.getRole().name(), user.getId(), Date.from(
 			Instant.now().plus(3, ChronoUnit.HOURS)));

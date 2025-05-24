@@ -33,6 +33,7 @@ public class OAuth2LoginSecurityConfig {
 	private final UserDetailsService customUserDetailsService;
 	private final RefreshTokenStore refreshTokenStore;
 	private final UserRepository userRepository;
+	private final TokenBlackListStore tokenBlackListStore;
 
 	@Bean
 	public RestTemplate restTemplate() {
@@ -71,7 +72,7 @@ public class OAuth2LoginSecurityConfig {
 				// .defaultSuccessUrl("/test")
 
 			//필터 추가
-			.addFilterBefore(new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository),
+			.addFilterBefore(new JwtFilter(jwtProperties, customUserDetailsService, refreshTokenStore, userRepository,  tokenBlackListStore),
 				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
 
 

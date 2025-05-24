@@ -3,7 +3,9 @@ package com.memo.common;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -45,12 +47,17 @@ public class JwtFilter extends OncePerRequestFilter {
 	private final UserDetailsService customUserDetailsService;
 	private final RefreshTokenStore refreshTokenStore;
 	private final UserRepository userRepository;
+	private final TokenBlackListStore tokenBlackListStore;
+	private final String[] permitList = {"/logout/oauth2/kakao"};
 
-	public JwtFilter(JwtProperties jwtProperties, UserDetailsService customUserDetailsService, RefreshTokenStore refreshTokenStore, UserRepository userRepository) {
+	public JwtFilter(JwtProperties jwtProperties, UserDetailsService customUserDetailsService,
+		RefreshTokenStore refreshTokenStore, UserRepository userRepository, TokenBlackListStore tokenBlackListStore) {
+
 		this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(jwtProperties.getSecretKey()));
 		this.customUserDetailsService = customUserDetailsService;
 		this.refreshTokenStore = refreshTokenStore;
 		this.userRepository = userRepository;
+		this.tokenBlackListStore = tokenBlackListStore;
 	}
 	//공식문서에 Filter를 구현하기보다	 OncePerRequestFilter 를 확장하라고 되어 있다. -> 각 요청당 한번만 invoke된다. 그리고 dofilterInternal이 HttpServletRequest HttpServletResponse 제공
 	//Filter는 그냥 ServletRequest 을 제공
@@ -58,6 +65,14 @@ public class JwtFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
 		FilterChain filterChain) throws ServletException, IOException {
+
+		//인증이 필요하지 않은 요청
+		String requestUri = request.getRequestURI();
+		for(String uri:permitList) {
+			if (uri.equals(requestUri)) {
+				filterChain.doFilter(request, response);
+			}
+		}
 		//토큰 꺼내기
 		String jwt = null;
 		jwt = request.getHeader(AUTHORIZATION);
@@ -68,10 +83,18 @@ public class JwtFilter extends OncePerRequestFilter {
 		}
 		// String token = jwt.replace(HEADER_STRING, "");
 		String token = resolveToken(jwt);
+		//블랙리스트에 등록된 토큰인지 확인
+		log.info("블랙리스트에 등록된 토큰인가? {}", tokenBlackListStore.contains(token));
+		if(tokenBlackListStore.contains(token)) {
+			throw new RuntimeException("로그아웃된 회원입니다.");
+		}
+
 		log.info("get AccessToken from header: {}", token);
 
 		//해시알고리즘으로 signature 암호화
 		String result = validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
+
+
 		if (result.equals("EXPIRED")) {
 			//만료된 토큰은 리프레시토큰을 활용해서 토큰 발급
 			//요청마다 securityContextHolder는 clear된다 -
@@ -183,7 +206,7 @@ public class JwtFilter extends OncePerRequestFilter {
 			.compact();                                 // (5)
 	}
 
-	private String resolveToken(String token) {
+	public static String resolveToken(String token) {
 		if (StringUtils.hasText(token) && token.startsWith(HEADER_STRING)) {
 			return token.substring(7);
 		}

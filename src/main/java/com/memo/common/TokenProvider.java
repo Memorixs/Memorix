@@ -9,6 +9,10 @@ import javax.crypto.SecretKey;
 
 import org.springframework.stereotype.Component;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -75,4 +79,23 @@ public class TokenProvider {
 		Date expired = Date.from(Instant.now().plus(7, ChronoUnit.DAYS));
 		return create(role, String.valueOf(id), expired);
 	}
+
+	public String validate(String jwt) {
+		try {
+
+			Jws<Claims> claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(jwt);
+			String subject = claims.getPayload().getSubject();
+			return subject; //userId
+			//OK, we can trust this JWT
+
+		} catch (ExpiredJwtException e) {
+			e.getStackTrace();
+			return "EXPIRED";
+			//don't trust the JWT!
+		} catch (JwtException e) {
+			e.getStackTrace();
+			return "EXCEPTION";
+		}
+	}
 }
+
