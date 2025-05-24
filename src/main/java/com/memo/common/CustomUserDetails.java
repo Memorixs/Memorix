@@ -71,4 +71,8 @@ public class CustomUserDetails implements UserDetails, OAuth2User { //인증, �
 	public String getName() {
 		return String.valueOf(user.getId());
 	}
+
+	public static UserDetails from(User user) {
+		return new CustomUserDetails(user);
+	}
 }

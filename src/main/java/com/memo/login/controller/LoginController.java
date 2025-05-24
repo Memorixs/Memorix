@@ -70,9 +70,9 @@ public class LoginController {
 	}
 
 	@GetMapping("/login/oauth2/code/kakao")
-	public ResponseEntity<User> callback(@RequestParam(name = "code") String code) throws JsonProcessingException {
+	public ResponseEntity<User> callback(@RequestParam(name = "code") String code, HttpServletResponse response) throws JsonProcessingException {
 		log.info("code: {}", code);
-		User user = userService.oAuthLogin(code);
+		User user = userService.oAuthLogin(code, response);
 		return new ResponseEntity<>(user, HttpStatus.OK);
 	}
 

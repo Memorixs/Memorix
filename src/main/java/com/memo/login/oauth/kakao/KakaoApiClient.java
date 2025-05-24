@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.memo.common.Role;
 import com.memo.login.User;
 
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,7 @@ public class KakaoApiClient {
 		user.setRefreshToken(oAuthResponse.getRefreshToken());
 		user.setAccessToken(oAuthResponse.getAccessToken());
 		user.setRefreshTokenExpires(oAuthResponse.getRefreshTokenExpiresIn());
+		user.setRole(Role.USER);
 
 
 		return user;
