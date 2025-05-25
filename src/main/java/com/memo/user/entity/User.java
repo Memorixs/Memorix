@@ -78,26 +78,27 @@ public class User {
 			this.isVerified = false;
 		}
 	}
-	private User(String email, String username, String password, String providerId, String imgUrl, LoginType loginType) {
+	private User(String email, String username, String password, String providerId, String imgUrl, LoginType loginType, boolean isVerified) {
 		this.email = email;
 		this.username = username;
 		this.password = password;
 		this.providerId = providerId;
 		this.imgUrl = imgUrl;
 		this.loginType = loginType;
+		this.isVerified = isVerified;
 	}
 	public static User from(OAuthUser oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg(), oAuthUser.getLoginType());
+		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg(), oAuthUser.getLoginType(), true);
 	}
 
 	public static User from(KakaoInfo oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO);
+		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO, true);
 	}
 
 	public static User of(SignupFormRequestDto requestDto, String password) {
 
 		return new User(requestDto.getEmail(), requestDto.getUsername(), password, null, null,
-			LoginType.NATIVE);
+			LoginType.NATIVE, false);
 	}
 
 
