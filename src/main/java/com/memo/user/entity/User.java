@@ -51,6 +51,9 @@ public class User {
 	@Setter
 	private String accessToken;
 
+	@Setter
+	private Boolean isVerified;
+
 	@PrePersist
 	public void perPersist() {
 		if(isBlacklist == null) {
@@ -70,6 +73,9 @@ public class User {
 		}
 		if (updatedAt == null) {
 			this.updatedAt = LocalDateTime.now();
+		}
+		if (isVerified == null){
+			this.isVerified = false;
 		}
 	}
 	private User(String email, String username, String password, String providerId, String imgUrl, LoginType loginType) {

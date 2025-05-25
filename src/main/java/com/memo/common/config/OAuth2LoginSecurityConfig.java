@@ -48,6 +48,7 @@ public class OAuth2LoginSecurityConfig {
 				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll() //로그인 리다이렉트 허용
 				.requestMatchers(new AntPathRequestMatcher("/logout/oauth2/kakao")).permitAll() //로그아웃 리다이렉트 허용
 				.requestMatchers(new AntPathRequestMatcher("/api/signup")).permitAll() //회원가입
+				.requestMatchers(new AntPathRequestMatcher("/api/auth/confirm")).permitAll() //이메일 확인 리다이렉트
 
 				.anyRequest().authenticated())
 

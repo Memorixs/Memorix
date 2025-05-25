@@ -1,5 +1,8 @@
 package com.memo.user.service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
@@ -16,13 +19,17 @@ import com.memo.common.security.CustomUserDetails;
 import com.memo.common.jwt.RefreshTokenStore;
 import com.memo.common.jwt.TokenProvider;
 import com.memo.common.util.CustomPasswordEncoder;
+import com.memo.common.util.EmailService;
+import com.memo.common.util.EmailUtils;
 import com.memo.common.util.UtilString;
+import com.memo.storage.MailLinkTokenStore;
 import com.memo.user.DTO.SignupFormRequestDto;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
 import com.memo.user.repository.UserRepository;
 
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +46,7 @@ public class UserService {
 	private final KakaoApiClient kakaoApiClient;
 	private final UserRepository userRepository;
 	private final CustomPasswordEncoder passwordEncoder;
+	private final EmailService signupEmailService;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -101,7 +109,7 @@ public class UserService {
 	}
 
 	@Transactional
-	public User signup(SignupFormRequestDto requestDto) {
+	public User signup(SignupFormRequestDto requestDto) throws MessagingException {
 		//이메일 인증 -> 임시번호
 		//인증했다치고
 		Optional<User> findUserByEmail = Optional.ofNullable(userRepository.findByEmailEquals(requestDto.getEmail()));
@@ -113,10 +121,27 @@ public class UserService {
 			throw new RuntimeException("중복되는 username 입니다.");
 		}
 		//회원가입 진행
-
-		PasswordEncoder encoder = passwordEncoder.passwordEncoder();
-		String encodedPw = encoder.encode(requestDto.getPassword());
-		User user = User.of(requestDto, encodedPw);
+		//1. 확인 이메일 전송
+		signupEmailService.sendVerifiedMessage(requestDto.getEmail()); ///api/auth/confirm"로 리다이렉트 -> 회원이 영원히 누르지 않으면 여기서 멈출듯
+//메일 전송 후 레디스에 email + 만료시간 설정 sendVerifiedMessage내에서 실행
+		String password = getEncodedPassword(requestDto.getPassword());
+		User user = User.of(requestDto, password);
 		return userRepository.save(user);
+	}
+
+	private String getEncodedPassword(String password) {
+		PasswordEncoder encoder = passwordEncoder.passwordEncoder();
+		String encodedPw = encoder.encode(password);
+		return encodedPw;
+	}
+
+	public User verifiedUser(String token) throws MessagingException {
+		//1. 토큰 검증 -> 만료면 다시 메일 보내기, 아니면 인증 성공 후 회원가입 진행
+		User user = signupEmailService.validateEmailToken(token);
+		Optional.ofNullable(user)
+			.orElseThrow(() -> new RuntimeException("토큰 확인 과정 중 문제가 발생했습니다."));
+		//미리 회원을 저장하고 인증이 완료되면 isVerified를 true로 변경
+		user.setIsVerified(true);
+		return user;
 	}
 }
