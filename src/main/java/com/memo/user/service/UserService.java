@@ -1,20 +1,26 @@
 package com.memo.user.service;
 
+import java.util.Optional;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.memo.common.security.CustomUserDetails;
 import com.memo.common.jwt.RefreshTokenStore;
 import com.memo.common.jwt.TokenProvider;
 import com.memo.common.UtilString;
+import com.memo.user.DTO.SignupFormRequestDto;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
+import com.memo.user.repository.UserRepository;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +36,8 @@ public class UserService {
 	private final TokenProvider tokenProvider;
 	private final RefreshTokenStore refreshTokenStore;
 	private final KakaoApiClient kakaoApiClient;
-
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -90,5 +97,23 @@ public class UserService {
 			.build();
 
 		response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+	}
+
+	@Transactional
+	public User signup(SignupFormRequestDto requestDto) {
+		//이메일 인증 -> 임시번호
+		//인증했다치고
+		Optional<User> findUserByEmail = Optional.ofNullable(userRepository.findByEmailEquals(requestDto.getEmail()));
+		Optional<User> findUserByUsername  = Optional.ofNullable(userRepository.findByUsernameEquals(requestDto.getUsername()));
+
+		if(findUserByEmail.isPresent()) {
+			throw new RuntimeException("중복되는 이메일입니다.");
+		} else if (findUserByUsername.isPresent()) {
+			throw new RuntimeException("중복되는 username 입니다.");
+		}
+		//회원가입 진행
+		String encodedPw = passwordEncoder.encode(requestDto.getPassword());
+		User user = User.of(requestDto, encodedPw);
+		return userRepository.save(user);
 	}
 }

@@ -1,5 +1,6 @@
 package com.memo.user.oauth.kakao;
 
+import com.memo.user.entity.LoginType;
 import com.memo.user.oauth.OAuthUser;
 
 import lombok.AccessLevel;
@@ -11,6 +12,7 @@ public class KakaoUser implements OAuthUser {
 	private String nickname;
 	private String id;
 	private String profileImage;
+	private LoginType loginType;
 	@Override
 	public String getEmail() {
 		return email;
@@ -31,7 +33,12 @@ public class KakaoUser implements OAuthUser {
 		return profileImage;
 	}
 
+	@Override
+	public LoginType getLoginType() {
+		return loginType;
+	}
+
 	public static KakaoUser of(String email, String nickname, String id, String profileImage) {
-		return new KakaoUser(email, nickname, id, profileImage);
+		return new KakaoUser(email, nickname, id, profileImage, LoginType.KAKAO);
 	}
 }

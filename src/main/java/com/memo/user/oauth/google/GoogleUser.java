@@ -1,5 +1,6 @@
 package com.memo.user.oauth.google;
 
+import com.memo.user.entity.LoginType;
 import com.memo.user.oauth.OAuthUser;
 
 import lombok.AccessLevel;
@@ -10,6 +11,7 @@ public class GoogleUser implements OAuthUser {
 	private String email;
 	private String id;
 	private String picture;
+	private LoginType loginType;
 
 	@Override
 	public String getEmail() {
@@ -31,8 +33,13 @@ public class GoogleUser implements OAuthUser {
 		return picture;
 	}
 
+	@Override
+	public LoginType getLoginType() {
+		return loginType;
+	}
+
 	public static GoogleUser of(String email, String id, String picture) {
-		return new GoogleUser(email, id, picture);
+		return new GoogleUser(email, id, picture, LoginType.GOOGLE);
 	}
 
 }

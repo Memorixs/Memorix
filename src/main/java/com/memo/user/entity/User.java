@@ -2,10 +2,13 @@ package com.memo.user.entity;
 
 import java.time.LocalDateTime;
 
+import com.memo.user.DTO.SignupFormRequestDto;
 import com.memo.user.oauth.OAuthUser;
 import com.memo.user.oauth.kakao.KakaoInfo;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id; //
@@ -36,7 +39,10 @@ public class User {
 	private Integer warning_count;
 	private String providerId;
 	@Setter
-	private Role role;
+	private Role role; // guest는 필요없어보임 -> 그럼 이넘을 사용할 이유가 없음
+
+	@Enumerated(EnumType.STRING)
+	private LoginType loginType;
 
 	@Setter
 	private String refreshToken;
@@ -66,19 +72,26 @@ public class User {
 			this.updatedAt = LocalDateTime.now();
 		}
 	}
-	private User(String email, String username, String password, String providerId, String imgUrl) {
+	private User(String email, String username, String password, String providerId, String imgUrl, LoginType loginType) {
 		this.email = email;
 		this.username = username;
 		this.password = password;
 		this.providerId = providerId;
 		this.imgUrl = imgUrl;
+		this.loginType = loginType;
 	}
 	public static User from(OAuthUser oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg());
+		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg(), oAuthUser.getLoginType());
 	}
 
 	public static User from(KakaoInfo oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null);
+		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO);
+	}
+
+	public static User of(SignupFormRequestDto requestDto, String password) {
+
+		return new User(requestDto.getEmail(), requestDto.getUsername(), password, null, null,
+			LoginType.NATIVE);
 	}
 
 
