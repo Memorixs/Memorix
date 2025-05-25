@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.memo.common.security.CustomUserDetails;
 import com.memo.common.jwt.RefreshTokenStore;
 import com.memo.common.jwt.TokenProvider;
+import com.memo.common.util.CustomPasswordEncoder;
 import com.memo.common.util.UtilString;
 import com.memo.user.DTO.SignupFormRequestDto;
 import com.memo.user.entity.User;
@@ -37,7 +38,7 @@ public class UserService {
 	private final RefreshTokenStore refreshTokenStore;
 	private final KakaoApiClient kakaoApiClient;
 	private final UserRepository userRepository;
-	private final PasswordEncoder passwordEncoder;
+	private final CustomPasswordEncoder passwordEncoder;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -112,7 +113,9 @@ public class UserService {
 			throw new RuntimeException("중복되는 username 입니다.");
 		}
 		//회원가입 진행
-		String encodedPw = passwordEncoder.encode(requestDto.getPassword());
+
+		PasswordEncoder encoder = passwordEncoder.passwordEncoder();
+		String encodedPw = encoder.encode(requestDto.getPassword());
 		User user = User.of(requestDto, encodedPw);
 		return userRepository.save(user);
 	}
