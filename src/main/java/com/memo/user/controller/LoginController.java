@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,14 +61,14 @@ public class LoginController {
 		return "OAuth 세션 정보 확인";
 	}
 
-	@GetMapping("/login/oauth2")
+	@PostMapping("/login/oauth2")
 	public void kakaoLogin(HttpServletResponse response) throws IOException {
 		String requestURL = kakaoApiClient.authServerRequest(); //code 발급을 위한 요청
 		response.sendRedirect(requestURL);
 	}
 
 	@GetMapping("/login/oauth2/code/kakao")
-	public ResponseEntity<User> callback(@RequestParam(name = "code") String code, HttpServletResponse response) throws JsonProcessingException {
+	public ResponseEntity<User> callback(@RequestParam(name = "code") String code, HttpServletResponse response) {
 		log.info("code: {}", code);
 		User user = userService.oAuthLogin(code, response);
 		return new ResponseEntity<>(user, HttpStatus.OK);
