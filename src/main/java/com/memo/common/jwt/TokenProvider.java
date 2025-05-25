@@ -15,7 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import com.memo.common.UtilString;
+import com.memo.common.util.UtilString;
 import com.memo.common.properties.JwtProperties;
 
 import io.jsonwebtoken.Claims;

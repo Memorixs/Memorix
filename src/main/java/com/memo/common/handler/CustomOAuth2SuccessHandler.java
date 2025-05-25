@@ -14,7 +14,7 @@ import com.memo.common.jwt.JwtFilter;
 import com.memo.common.jwt.RefreshTokenStore;
 import com.memo.common.jwt.TokenBlackListStore;
 import com.memo.common.jwt.TokenProvider;
-import com.memo.common.UtilString;
+import com.memo.common.util.UtilString;
 import com.memo.user.entity.User;
 
 import jakarta.servlet.ServletException;

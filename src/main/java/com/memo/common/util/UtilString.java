@@ -1,4 +1,4 @@
-package com.memo.common;
+package com.memo.common.util;
 
 import lombok.AllArgsConstructor;
 

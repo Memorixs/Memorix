@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.memo.common.security.CustomUserDetails;
 import com.memo.common.jwt.RefreshTokenStore;
 import com.memo.common.jwt.TokenProvider;
-import com.memo.common.UtilString;
+import com.memo.common.util.UtilString;
 import com.memo.user.DTO.SignupFormRequestDto;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;

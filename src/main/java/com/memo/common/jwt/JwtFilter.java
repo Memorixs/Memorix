@@ -7,7 +7,7 @@ import java.util.Date;
 
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.memo.common.UtilString;
+import com.memo.common.util.UtilString;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
