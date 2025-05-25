@@ -112,6 +112,9 @@ public class TokenProvider {
 			e.getStackTrace();
 			return e.getClaims();
 			//don't trust the JWT!
+		}catch (JwtException e) {
+			e.getStackTrace();
+			throw new RuntimeException("토큰 예외가 발생했습니다.");
 		}
 	}
 

@@ -42,9 +42,9 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		JwtFilter jwtFilter = new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider);
 
 		//성공필터에서 토큰 발급해주기,
-		String accessToken = tokenProvider.create(user.getRole().name(), user.getId(), Date.from(
+		String accessToken = tokenProvider.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(
 			Instant.now().plus(3, ChronoUnit.HOURS)));
-		String refreshToken = tokenProvider.create(user.getRole().name(), user.getId(), Date.from(
+		String refreshToken = tokenProvider.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(
 			Instant.now().plus(7, ChronoUnit.DAYS)));
 		//리프레시 토큰은 스토리지에 저장
 		refreshTokenStore.save(user.getId(), refreshToken);
