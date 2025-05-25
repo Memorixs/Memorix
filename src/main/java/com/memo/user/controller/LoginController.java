@@ -61,7 +61,7 @@ public class LoginController {
 		return "OAuth 세션 정보 확인";
 	}
 
-	@PostMapping("/login/oauth2")
+	@GetMapping("/login/oauth2")
 	public void kakaoLogin(HttpServletResponse response) throws IOException {
 		String requestURL = kakaoApiClient.authServerRequest(); //code 발급을 위한 요청
 		response.sendRedirect(requestURL);

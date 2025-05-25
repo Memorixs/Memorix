@@ -66,8 +66,6 @@ public class JwtFilter extends OncePerRequestFilter {
 			throw new RuntimeException("로그아웃된 회원입니다.");
 		}
 
-		log.info("get AccessToken from header: {}", token);
-
 		//해시알고리즘으로 signature 암호화
 		String tokenValid = tokenProvider.validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
 

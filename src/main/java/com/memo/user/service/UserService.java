@@ -135,6 +135,8 @@ public class UserService {
 		return encodedPw;
 	}
 
+
+	@Transactional
 	public User verifiedUser(String token) throws MessagingException {
 		//1. 토큰 검증 -> 만료면 다시 메일 보내기, 아니면 인증 성공 후 회원가입 진행
 		User user = signupEmailService.validateEmailToken(token);
