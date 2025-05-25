@@ -39,7 +39,7 @@ public class TokenProvider {
 		this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(jwtProperties.getSecretKey()));
 		this.customUserDetailsService = customUserDetailsService;
 	}
-	public  String create(String role, Long id, Date expired){
+	public  String create(String role, String id, Date expired){
 		log.info("Create Token with {} and {}", role, id);
 		MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
 
@@ -52,7 +52,7 @@ public class TokenProvider {
 
 			.and()
 
-			.subject(String.valueOf(id))//사용자id
+			.subject(id)//사용자id
 			.expiration(expired) //a java.util.Date
 			.issuedAt(new Date()) // for example, now
 			.id(UUID.randomUUID().toString()) //just an example id
@@ -63,13 +63,17 @@ public class TokenProvider {
 			.compact();                                 // (5)
 	}
 
+	public String createEmailConfirmToken(String email) {
+		Date expired = Date.from(Instant.now().plus(10, ChronoUnit.MINUTES));
+		return create(null, email, expired);
+	}
 	public String createAccessToken(String role, Long id) {
 		Date expired = Date.from(Instant.now().plus(3, ChronoUnit.HOURS));
-		return create(role, id, expired);
+		return create(role, String.valueOf(id), expired);
 	}
 	public String createRefreshToken(String role, Long id) {
 		Date expired = Date.from(Instant.now().plus(7, ChronoUnit.DAYS));
-		return create(role, id, expired);
+		return create(role, String.valueOf(id), expired);
 	}
 
 	public String validate(String jwt) {
@@ -98,8 +102,17 @@ public class TokenProvider {
 	}
 
 	public Claims getClaims(String token) {
-		Jws<Claims> claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
-		return claims.getPayload();
+		Jws<Claims> claims = null;
+		try {
+
+			claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
+			return claims.getPayload(); //userId
+			//OK, we can trust this JWT
+		} catch (ExpiredJwtException e) {
+			e.getStackTrace();
+			return e.getClaims();
+			//don't trust the JWT!
+		}
 	}
 
 	public void setAuthentication(String id) {
