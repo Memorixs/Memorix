@@ -155,6 +155,9 @@ public class UserService {
 		if (!isMatchesPassword(requestDto.getPassword(), user.getPassword())){
 			throw new RuntimeException("비밀번호가 일치하지 않습니다. password: " + requestDto.getPassword());
 		}
+		if(!user.getIsVerified()) {
+			throw new RuntimeException("검증되지 않은 사용자입니다. verified: " + user.getIsVerified());
+		}
 		//토큰 생성
 		setResponseToken(user, response);
 		return user.getId();
