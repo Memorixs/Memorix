@@ -17,16 +17,16 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.client.RestTemplate;
 
 import com.memo.common.jwt.JwtFilter;
-import com.memo.common.jwt.RefreshTokenStore;
-import com.memo.common.jwt.TokenBlackListStore;
 import com.memo.common.jwt.TokenProvider;
+import com.memo.storage.RefreshTokenRepository;
+import com.memo.storage.TokenBlackListRepository;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class OAuth2LoginSecurityConfig {
-	private final RefreshTokenStore refreshTokenStore;
-	private final TokenBlackListStore tokenBlackListStore;
+	private final RefreshTokenRepository refreshTokenStore;
+	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
 
 	@Bean
