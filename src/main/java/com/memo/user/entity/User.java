@@ -3,6 +3,7 @@ package com.memo.user.entity;
 import java.time.LocalDateTime;
 
 import com.memo.user.DTO.SignupFormRequestDto;
+import com.memo.user.DTO.UserRequestDto;
 import com.memo.user.oauth.OAuthUser;
 import com.memo.user.oauth.kakao.KakaoInfo;
 
@@ -96,7 +97,7 @@ public class User {
 		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO, true, Role.USER);
 	}
 
-	public static User of(SignupFormRequestDto requestDto, String password) {
+	public static User of(UserRequestDto requestDto, String password) {
 
 		return new User(requestDto.getEmail(), requestDto.getUsername(), password, null, null,
 			LoginType.NATIVE, false, Role.USER);

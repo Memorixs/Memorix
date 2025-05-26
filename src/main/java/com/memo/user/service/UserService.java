@@ -49,7 +49,6 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final CustomPasswordEncoder passwordEncoder;
 	private final EmailService signupEmailService;
-	private final UserDetailsService customUserDetailsService;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -112,7 +111,7 @@ public class UserService {
 	}
 
 	@Transactional
-	public User signup(SignupFormRequestDto requestDto) throws MessagingException {
+	public User signup(UserRequestDto requestDto) throws MessagingException {
 		//이메일 인증 -> 임시번호
 		//인증했다치고
 		Optional<User> findUserByEmail = Optional.ofNullable(userRepository.findByEmailEquals(requestDto.getEmail()));
