@@ -11,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import com.memo.common.util.EmailUtils;
 import com.memo.common.util.UtilString;
 import com.memo.storage.MailLinkTokenStore;
 import com.memo.user.DTO.SignupFormRequestDto;
+import com.memo.user.DTO.UserRequestDto;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
@@ -47,6 +49,7 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final CustomPasswordEncoder passwordEncoder;
 	private final EmailService signupEmailService;
+	private final UserDetailsService customUserDetailsService;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -145,5 +148,21 @@ public class UserService {
 		//미리 회원을 저장하고 인증이 완료되면 isVerified를 true로 변경
 		user.setIsVerified(true);
 		return user;
+	}
+
+	public Long login(HttpServletResponse response, UserRequestDto requestDto) {
+		User user = userRepository.findByEmail(requestDto.getEmail())
+			.orElseThrow(() -> new RuntimeException("가입된 정보가 없습니다. email: "+ requestDto.getEmail()));
+		if (!isMatchesPassword(requestDto.getPassword(), user.getPassword())){
+			throw new RuntimeException("비밀번호가 일치하지 않습니다. password: " + requestDto.getPassword());
+		}
+		//토큰 생성
+		setResponseToken(user, response);
+		return user.getId();
+	}
+
+	private boolean isMatchesPassword(String rawPassword, String encodedPassword){
+		PasswordEncoder endcoder = passwordEncoder.passwordEncoder();
+		return endcoder.matches(rawPassword, encodedPassword);
 	}
 }

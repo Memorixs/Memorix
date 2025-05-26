@@ -21,7 +21,7 @@ public class JwtFilter extends OncePerRequestFilter {
 	//리프레시 토큰 저장할때가 로그인할때임
 	private final RefreshTokenStore refreshTokenStore;
 	private final TokenBlackListStore tokenBlackListStore;
-	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm"};
+	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm", "/favicon.ico"};
 	private final TokenProvider tokenProvider;
 
 	public JwtFilter(RefreshTokenStore refreshTokenStore, TokenBlackListStore tokenBlackListStore,

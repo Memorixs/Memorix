@@ -78,7 +78,7 @@ public class User {
 			this.isVerified = false;
 		}
 	}
-	private User(String email, String username, String password, String providerId, String imgUrl, LoginType loginType, boolean isVerified) {
+	private User(String email, String username, String password, String providerId, String imgUrl, LoginType loginType, boolean isVerified, Role role) {
 		this.email = email;
 		this.username = username;
 		this.password = password;
@@ -86,19 +86,20 @@ public class User {
 		this.imgUrl = imgUrl;
 		this.loginType = loginType;
 		this.isVerified = isVerified;
+		this.role = role;
 	}
 	public static User from(OAuthUser oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg(), oAuthUser.getLoginType(), true);
+		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg(), oAuthUser.getLoginType(), true, Role.USER);
 	}
 
 	public static User from(KakaoInfo oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO, true);
+		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO, true, Role.USER);
 	}
 
 	public static User of(SignupFormRequestDto requestDto, String password) {
 
 		return new User(requestDto.getEmail(), requestDto.getUsername(), password, null, null,
-			LoginType.NATIVE, false);
+			LoginType.NATIVE, false, Role.USER);
 	}
 
 
