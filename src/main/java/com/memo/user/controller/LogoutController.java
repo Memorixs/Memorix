@@ -8,10 +8,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.memo.common.security.CustomUserDetails;
-import com.memo.common.jwt.TokenProvider;
-import com.memo.storage.RefreshTokenRepository;
-import com.memo.storage.TokenBlackList;
-import com.memo.storage.TokenBlackListRepository;
 import com.memo.user.entity.User;
 import com.memo.user.service.UserService;
 
@@ -25,18 +21,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LogoutController {
 	private final UserService userService;
-	private final RefreshTokenRepository refreshTokenStore;
-	private final TokenBlackListRepository tokenBlackListStore;
-	private final TokenProvider tokenProvider;
-
 
 	//logout redirect url
 // /logout/oauth2/kakao
 	@GetMapping("/logout/oauth2/kakao")
 	public ResponseEntity<String> logout(@RequestParam("state") String token, HttpServletResponse response) {
 		//id는 서버끼리 통신이라 탈취되지 않을 것?
-		log.info("logout token: {}", token);
-		userService.logout(token, response);
+		userService.logout(token);
+		userService.deleteCookie(response);
 		return ResponseEntity.ok().body("ok");
 	}
 

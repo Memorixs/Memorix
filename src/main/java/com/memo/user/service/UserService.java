@@ -22,6 +22,7 @@ import com.memo.storage.RefreshTokenRepository;
 import com.memo.storage.TokenBlackList;
 import com.memo.storage.TokenBlackListRepository;
 import com.memo.user.DTO.UserRequestDto;
+import com.memo.user.entity.LoginType;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
@@ -86,23 +87,26 @@ public class UserService {
 	}
 
 	//카카오 로그아웃
+	@Transactional
 	public void logout(HttpServletRequest request, User user) {
 		//엑세스토큰으로 요청
 		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
 		String jwt = TokenProvider.resolveToken(token);
 		String accessToken = user.getAccessToken();
-		kakaoApiClient.logout(accessToken, jwt, user);
+		switch(user.getLoginType()) {
+			case NATIVE -> logout(jwt);
+			case KAKAO -> kakaoApiClient.logout(accessToken, jwt, user);
+		}
 	}
 
 	@Transactional
-	public void logout(String token, HttpServletResponse response) {
-		String stringId = tokenProvider.validate(token);
+	public void logout(String token) {
+		String stringId = tokenProvider.getClaims(token).getSubject();
 		refreshTokenStore.deleteByUserId(Long.valueOf(stringId));
 		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
 
 		tokenBlackListStore.save(new TokenBlackList(token));
 		//리프레시 쿠키 삭제하도록 응답
-		deleteCookie(response);
 	}
 
 	public void deleteCookie(HttpServletResponse response) {
