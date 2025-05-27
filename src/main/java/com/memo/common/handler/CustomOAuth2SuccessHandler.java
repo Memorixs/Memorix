@@ -11,10 +11,11 @@ import org.springframework.stereotype.Component;
 
 import com.memo.common.security.CustomUserDetails;
 import com.memo.common.jwt.JwtFilter;
-import com.memo.common.jwt.RefreshTokenStore;
-import com.memo.common.jwt.TokenBlackListStore;
 import com.memo.common.jwt.TokenProvider;
 import com.memo.common.util.UtilString;
+import com.memo.storage.RefreshToken;
+import com.memo.storage.RefreshTokenRepository;
+import com.memo.storage.TokenBlackListRepository;
 import com.memo.user.entity.User;
 
 import jakarta.servlet.ServletException;
@@ -28,8 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
-	private final RefreshTokenStore refreshTokenStore;
-	private final TokenBlackListStore tokenBlackListStore;
+	private final RefreshTokenRepository refreshTokenStore;
+	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
 
 	@Override
@@ -47,7 +48,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		String refreshToken = tokenProvider.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(
 			Instant.now().plus(7, ChronoUnit.DAYS)));
 		//리프레시 토큰은 스토리지에 저장
-		refreshTokenStore.save(user.getId(), refreshToken);
+		refreshTokenStore.save(new RefreshToken(user.getId(), refreshToken));
 
 		//토큰 header에 넣어주기
 		response.setHeader(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);

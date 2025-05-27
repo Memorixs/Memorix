@@ -10,11 +10,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.memo.user.DTO.LoginRequestDto;
+import com.memo.user.DTO.UserRequestDto;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
@@ -34,7 +37,7 @@ public class LoginController {
 	private final UserService userService;
 
 	@GetMapping("/test")
-	public String login() {
+	public String test() {
 
 		// log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().isAuthenticated());
 		// log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().toString());
@@ -50,7 +53,7 @@ public class LoginController {
 	) { //세션 정보 받아오기 (DI 의존성 주입)
 
 		//방법 1
-		OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+		OAuth2User oAuth2User = (OAuth2User)authentication.getPrincipal();
 		System.out.println("authentication: " + oAuth2User.getAttributes());
 		log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().isAuthenticated());
 		log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().toString());
@@ -74,4 +77,9 @@ public class LoginController {
 		return new ResponseEntity<>(user, HttpStatus.OK);
 	}
 
+	@PostMapping("/api/login")
+	public ResponseEntity<Long> login(HttpServletResponse response, @RequestBody LoginRequestDto requestDto) {
+		Long id = userService.login(response, requestDto);
+		return ResponseEntity.ok().body(id);
+	}
 }

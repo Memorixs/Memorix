@@ -132,12 +132,12 @@ public class KakaoApiClient {
 	}
 
 	public void logout(String token, String blackListToken, User user) {
-		int status = validateToken(token);
-		if (status == 401) {
-			String refreshToken = user.getRefreshToken();
-			KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
-			token = response.getAccessToken();
-		}
+		// int status = validateToken(token);
+		// if (status == 401) {
+		// 	String refreshToken = user.getRefreshToken();
+		// 	KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
+		// 	token = response.getAccessToken();
+		// }
 		HttpHeaders header = new HttpHeaders();
 		header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
