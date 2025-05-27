@@ -1,7 +1,7 @@
 ---
 name: Troubleshooting
 about: 트러블 슈팅 기록
-title: ''
+title: "[\U0001F4A1Troubleshooting] "
 labels: troubleshooting
 assignees: ''
 
