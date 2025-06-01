@@ -95,7 +95,7 @@ public class UserService {
 		String accessToken = user.getAccessToken();
 		switch(user.getLoginType()) {
 			case NATIVE -> logout(jwt);
-			case KAKAO -> kakaoApiClient.logout(accessToken, jwt, user);
+			case KAKAO -> kakaoApiClient.logout(jwt);
 		}
 	}
 
@@ -178,5 +178,27 @@ public class UserService {
 	private boolean isMatchesPassword(String rawPassword, String encodedPassword){
 		PasswordEncoder endcoder = passwordEncoder.passwordEncoder();
 		return endcoder.matches(rawPassword, encodedPassword);
+	}
+
+	@Transactional
+	public void deleteUser(User user, HttpServletRequest request, HttpServletResponse response) {
+		//카카오 로그인 사용자인지 확인
+		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
+		String jwt = TokenProvider.resolveToken(token);
+		switch (user.getLoginType()) {
+			case KAKAO -> kakaoApiClient.logout(jwt); //카카오 르그아웃에서 쿠키 삭제, 블랙리스트 등록, 리스레시 토큰 삭제 진행하고 있음
+			case NATIVE -> deleteUserById(user.getId(), jwt, response);
+		}
+
+	}
+
+	private void deleteUserById(Long id, String jwt, HttpServletResponse response) {
+		//delete(Entity)와 deleteById(Long) 차이
+		// userRepository.deleteById(id);
+		userRepository.softDeleteById(id);
+		//블랙리스트에 추가,토큰 비우기, 쿠키
+		tokenBlackListStore.save(new TokenBlackList(jwt));
+		deleteCookie(response);
+		refreshTokenStore.deleteByUserId(id);
 	}
 }
