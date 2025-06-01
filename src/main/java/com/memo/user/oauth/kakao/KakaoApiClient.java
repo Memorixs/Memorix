@@ -131,7 +131,7 @@ public class KakaoApiClient {
 		return response.getBody();
 	}
 
-	public void logout(String token, String blackListToken, User user) {
+	public void logout(String blackListToken) {
 		// int status = validateToken(token);
 		// if (status == 401) {
 		// 	String refreshToken = user.getRefreshToken();
