@@ -1,8 +1,5 @@
 package com.memo.user.service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
@@ -16,14 +13,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.memo.common.security.CustomUserDetails;
-import com.memo.common.jwt.RefreshTokenStore;
 import com.memo.common.jwt.TokenProvider;
 import com.memo.common.util.CustomPasswordEncoder;
 import com.memo.common.util.EmailService;
-import com.memo.common.util.EmailUtils;
 import com.memo.common.util.UtilString;
-import com.memo.storage.MailLinkTokenStore;
-import com.memo.user.DTO.SignupFormRequestDto;
+import com.memo.storage.RefreshToken;
+import com.memo.storage.RefreshTokenRepository;
+import com.memo.storage.TokenBlackList;
+import com.memo.storage.TokenBlackListRepository;
+import com.memo.user.DTO.UserRequestDto;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
@@ -42,11 +40,12 @@ import lombok.extern.slf4j.Slf4j;
 public class UserService {
 	private final CustomOAuthService customOAuthService;
 	private final TokenProvider tokenProvider;
-	private final RefreshTokenStore refreshTokenStore;
+	private final RefreshTokenRepository refreshTokenStore;
 	private final KakaoApiClient kakaoApiClient;
 	private final UserRepository userRepository;
 	private final CustomPasswordEncoder passwordEncoder;
 	private final EmailService signupEmailService;
+	private final TokenBlackListRepository tokenBlackListStore;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -62,7 +61,7 @@ public class UserService {
 		String accessToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
 		String refreshToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
 		//리프레시 토큰은 스토리지에 저장
-		refreshTokenStore.save(user.getId(), refreshToken);
+		refreshTokenStore.save(new RefreshToken(user.getId(), refreshToken));
 
 		//토큰 header에 넣어주기
 		response.setHeader(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);
@@ -89,10 +88,21 @@ public class UserService {
 	//카카오 로그아웃
 	public void logout(HttpServletRequest request, User user) {
 		//엑세스토큰으로 요청
-		String token = request.getHeader(UtilString.AUTHORIZATION.value());
+		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
 		String jwt = TokenProvider.resolveToken(token);
 		String accessToken = user.getAccessToken();
 		kakaoApiClient.logout(accessToken, jwt, user);
+	}
+
+	@Transactional
+	public void logout(String token, HttpServletResponse response) {
+		String stringId = tokenProvider.validate(token);
+		refreshTokenStore.deleteByUserId(Long.valueOf(stringId));
+		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
+
+		tokenBlackListStore.save(new TokenBlackList(token));
+		//리프레시 쿠키 삭제하도록 응답
+		deleteCookie(response);
 	}
 
 	public void deleteCookie(HttpServletResponse response) {
@@ -109,7 +119,7 @@ public class UserService {
 	}
 
 	@Transactional
-	public User signup(SignupFormRequestDto requestDto) throws MessagingException {
+	public User signup(UserRequestDto requestDto) throws MessagingException {
 		//이메일 인증 -> 임시번호
 		//인증했다치고
 		Optional<User> findUserByEmail = Optional.ofNullable(userRepository.findByEmailEquals(requestDto.getEmail()));
@@ -145,5 +155,24 @@ public class UserService {
 		//미리 회원을 저장하고 인증이 완료되면 isVerified를 true로 변경
 		user.setIsVerified(true);
 		return user;
+	}
+
+	public Long login(HttpServletResponse response, UserRequestDto requestDto) {
+		User user = userRepository.findByEmail(requestDto.getEmail())
+			.orElseThrow(() -> new RuntimeException("가입된 정보가 없습니다. email: "+ requestDto.getEmail()));
+		if (!isMatchesPassword(requestDto.getPassword(), user.getPassword())){
+			throw new RuntimeException("비밀번호가 일치하지 않습니다. password: " + requestDto.getPassword());
+		}
+		if(!user.getIsVerified()) {
+			throw new RuntimeException("검증되지 않은 사용자입니다. verified: " + user.getIsVerified());
+		}
+		//토큰 생성
+		setResponseToken(user, response);
+		return user.getId();
+	}
+
+	private boolean isMatchesPassword(String rawPassword, String encodedPassword){
+		PasswordEncoder endcoder = passwordEncoder.passwordEncoder();
+		return endcoder.matches(rawPassword, encodedPassword);
 	}
 }

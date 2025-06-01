@@ -17,16 +17,16 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.client.RestTemplate;
 
 import com.memo.common.jwt.JwtFilter;
-import com.memo.common.jwt.RefreshTokenStore;
-import com.memo.common.jwt.TokenBlackListStore;
 import com.memo.common.jwt.TokenProvider;
+import com.memo.storage.RefreshTokenRepository;
+import com.memo.storage.TokenBlackListRepository;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class OAuth2LoginSecurityConfig {
-	private final RefreshTokenStore refreshTokenStore;
-	private final TokenBlackListStore tokenBlackListStore;
+	private final RefreshTokenRepository refreshTokenStore;
+	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
 
 	@Bean
@@ -44,7 +44,7 @@ public class OAuth2LoginSecurityConfig {
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
 				.requestMatchers(new AntPathRequestMatcher("/*")).permitAll() //메인 페이지 접근 허용
-				.requestMatchers(new AntPathRequestMatcher("/api/login/*")).permitAll() //메인 페이지 접근 허용
+				.requestMatchers(new AntPathRequestMatcher("/api/login/**")).permitAll() //메인 페이지 접근 허용
 				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll() //로그인 리다이렉트 허용
 				.requestMatchers(new AntPathRequestMatcher("/logout/oauth2/kakao")).permitAll() //로그아웃 리다이렉트 허용
 				.requestMatchers(new AntPathRequestMatcher("/api/signup")).permitAll() //회원가입

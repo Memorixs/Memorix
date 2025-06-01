@@ -4,33 +4,33 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
 
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.memo.common.util.UtilString;
+import com.memo.storage.RefreshToken;
+import com.memo.storage.RefreshTokenRepository;
+import com.memo.storage.TokenBlackListRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 	//리프레시 토큰 저장할때가 로그인할때임
-	private final RefreshTokenStore refreshTokenStore;
-	private final TokenBlackListStore tokenBlackListStore;
-	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm"};
+	// private final RefreshTokenStore refreshTokenStore;
+	private final RefreshTokenRepository refreshTokenStore;
+	private final TokenBlackListRepository tokenBlackListStore;
+	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm", "/favicon.ico"};
 	private final TokenProvider tokenProvider;
 
-	public JwtFilter(RefreshTokenStore refreshTokenStore, TokenBlackListStore tokenBlackListStore,
-		TokenProvider tokenProvider) {
-
-		this.refreshTokenStore = refreshTokenStore;
-		this.tokenBlackListStore = tokenBlackListStore;
-		this.tokenProvider = tokenProvider;
-	}
 	//공식문서에 Filter를 구현하기보다	 OncePerRequestFilter 를 확장하라고 되어 있다. -> 각 요청당 한번만 invoke된다. 그리고 dofilterInternal이 HttpServletRequest HttpServletResponse 제공
 	//Filter는 그냥 ServletRequest 을 제공
 	// https://docs.spring.io/spring-security/reference/servlet/architecture.html#_adding_a_custom_filter
@@ -61,8 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		// String token = jwt.replace(HEADER_STRING, "");
 		String token = TokenProvider.resolveToken(jwt);
 		//블랙리스트에 등록된 토큰인지 확인
-		log.info("블랙리스트에 등록된 토큰인가? {}", tokenBlackListStore.contains(token));
-		if(tokenBlackListStore.contains(token)) {
+		if(tokenBlackListStore.findByToken(token).isPresent()) { //존재하면 로그아웃된 회원
 			throw new RuntimeException("로그아웃된 회원입니다.");
 		}
 
@@ -85,12 +84,11 @@ public class JwtFilter extends OncePerRequestFilter {
 						throw new RuntimeException("토큰이 모두 만료되었습니다. 재로그인 해주세요.");
 					}
 					Long userId = Long.valueOf(tokenValid);
-					if(!refreshTokenStore.containsKey(userId)) {
-						throw new RuntimeException("리프레시 토큰이 존재하지 않아 토큰 갱신이 불가능합니다.");
-					}
-					String findRefreshToken = refreshTokenStore.get(userId);
 
-					String accessToken = createAccessToken(findRefreshToken, userId);
+					RefreshToken findRefreshToken = refreshTokenStore.findByUserId(userId)
+						.orElseThrow(() -> new RuntimeException("리프레시 토큰이 존재하지 않아 토큰 갱신이 불가능합니다."));
+
+					String accessToken = createAccessToken(findRefreshToken.getToken(), userId);
 					response.setHeader(UtilString.AUTHORIZATION.value(), accessToken);
 				}
 			}
