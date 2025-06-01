@@ -43,7 +43,7 @@ public class OAuth2LoginSecurityConfig {
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
-				.requestMatchers(new AntPathRequestMatcher("/*")).permitAll() //메인 페이지 접근 허용
+				.requestMatchers(new AntPathRequestMatcher("/**")).permitAll() //메인 페이지 접근 허용
 				.requestMatchers(new AntPathRequestMatcher("/api/login/**")).permitAll() //메인 페이지 접근 허용
 				.requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/kakao")).permitAll() //로그인 리다이렉트 허용
 				.requestMatchers(new AntPathRequestMatcher("/logout/oauth2/kakao")).permitAll() //로그아웃 리다이렉트 허용
