@@ -46,15 +46,6 @@ public class User {
 	private LoginType loginType;
 
 	@Setter
-	private String refreshToken;
-	@Setter
-	private Integer refreshTokenExpires; //초단위
-	@Setter
-	private Integer accessTokenExpires;
-	@Setter
-	private String accessToken;
-
-	@Setter
 	private Boolean isVerified;
 
 	@PrePersist

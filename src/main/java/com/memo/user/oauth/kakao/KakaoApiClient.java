@@ -2,7 +2,6 @@ package com.memo.user.oauth.kakao;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpEntity;
@@ -58,14 +57,11 @@ public class KakaoApiClient {
 
 	public String authServerRequest() {
 		//google api와 통신하기 위한 요청 만들기(승인 코드를 받기 위한 요청) //
-		// authorizationCodeFlow.loadCredential(String);
 		Map<String, String> params = new HashMap<>();
 		params.put("client_id", clientId);
 		params.put("redirect_uri", redirectUrl);
 		params.put("response_type", "code");
-		// params.put("scope", "profile_nickname");
 
-		// params.put("state", createCSRFToken())
 		String parameterString=params.entrySet().stream()
 			.map(x->x.getKey()+"="+x.getValue())
 			.collect(Collectors.joining("&"));
@@ -97,8 +93,6 @@ public class KakaoApiClient {
 		body.add("client_id", clientId);
 		body.add("redirect_uri", redirectUrl);
 		body.add("code", code);
-		// client_secret이 필요한 경우 추가
-		// body.add("client_secret", clientSecret);
 
 		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -112,13 +106,6 @@ public class KakaoApiClient {
 	}
 
 	private KakaoInfo requestUserInfo(String token) {
-		// lvLI6qji20bjm9IDpYyD3NJsJPTHEOQbAAAAAQoNFKMAAAGXAgKOYyn2EFsnJsRZ
-		// HttpHeaders headers = new HttpHeaders();
-
-		// HttpEntity<MultiValueMap<String,String>> request = new HttpEntity<>(headers);
-		// headers.add("Authorization","Bearer "+ token);
-		// ResponseEntity<String> exchange = restTemplate.exchange(userInfoUrl, HttpMethod.GET, request, String.class);
-		// System.out.println(exchange.getBody());
 
 		HttpHeaders httpHeaders = new HttpHeaders();
 		httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -128,11 +115,10 @@ public class KakaoApiClient {
 		// Request entity 생성
 		HttpEntity<?> userInfoEntity = new HttpEntity<>(httpHeaders);
 		ResponseEntity<KakaoInfo> response = restTemplate.postForEntity(userInfoUrl, userInfoEntity, KakaoInfo.class);
-		log.info("kakao userInfo: {}", response.toString());
 		return response.getBody();
 	}
 
-	public void logout(String token, String blackListToken, User user) {
+	public void logout(String token, User user) {
 		String logout = "https://kapi.kakao.com/v1/user/logout";
 		int status = validateToken(token);
 		if (status == 401) {
@@ -153,7 +139,7 @@ public class KakaoApiClient {
 
 		log.info(response.toString());
 
-		} //logoutRedirectUrl로 리다이렉트
+		}
 
 	private int validateToken(String token) {
 		HttpHeaders header = new HttpHeaders();
@@ -193,7 +179,6 @@ public class KakaoApiClient {
 		// Request entity 생성
 		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, httpHeaders);
 		ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(tokenUrl, request, KakaoTokenResponse.class);
-		log.info("토큰 갱신: {}", response.toString());
 		return response.getBody();
 	}
 }

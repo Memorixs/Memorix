@@ -29,7 +29,6 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 	private final OAuthService googleOAuthService;
 	private final OAuthService kakaoOAuthService;
 	private final KakaoApiClient kakaoApiClient;
-	// private final JwtFilter jwtFilter;
 	private final TokenRepository tokenRepository;
 
 	@Override
@@ -74,7 +73,6 @@ public class CustomOAuthService implements OAuth2UserService<OAuth2UserRequest, 
 		User user = kakaoApiClient.createUser(response);
 		tokenRepository.save("kakaoAccess;id" + user.getId(), response.getAccessToken(), response.getExpiresIn(), TimeUnit.SECONDS);
 		tokenRepository.save("kakaoRefresh;id" + user.getId(), response.getRefreshToken(), response.getRefreshTokenExpiresIn(), TimeUnit.SECONDS);
-		log.info("login User kakaoAccessToken: {}", user.getAccessToken());
 		return user;
 	}
 
