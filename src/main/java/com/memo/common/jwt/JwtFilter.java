@@ -12,6 +12,7 @@ import com.memo.common.util.UtilString;
 import com.memo.storage.RefreshToken;
 import com.memo.storage.RefreshTokenRepository;
 import com.memo.storage.TokenBlackListRepository;
+import com.memo.storage.TokenRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,6 +31,9 @@ public class JwtFilter extends OncePerRequestFilter {
 	private final TokenBlackListRepository tokenBlackListStore;
 	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm", "/favicon.ico"};
 	private final TokenProvider tokenProvider;
+	private final TokenRepository tokenRepository;
+
+
 
 	//공식문서에 Filter를 구현하기보다	 OncePerRequestFilter 를 확장하라고 되어 있다. -> 각 요청당 한번만 invoke된다. 그리고 dofilterInternal이 HttpServletRequest HttpServletResponse 제공
 	//Filter는 그냥 ServletRequest 을 제공
@@ -61,13 +65,17 @@ public class JwtFilter extends OncePerRequestFilter {
 		// String token = jwt.replace(HEADER_STRING, "");
 		String token = TokenProvider.resolveToken(jwt);
 		//블랙리스트에 등록된 토큰인지 확인
-		if(tokenBlackListStore.findByToken(token).isPresent()) { //존재하면 로그아웃된 회원
-			throw new RuntimeException("로그아웃된 회원입니다.");
-		}
+		// if(tokenBlackListStore.findByToken(token).isPresent()) { //존재하면 로그아웃된 회원
+		// 	throw new RuntimeException("로그아웃된 회원입니다.");
+		// }
 
 		//해시알고리즘으로 signature 암호화
 		String tokenValid = tokenProvider.validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
-
+		if(tokenRepository.findByKey("blackList;id" + tokenValid) != null) {
+			if (tokenRepository.findByKey("blackList;id" + tokenValid).equals(token)) {
+				throw new RuntimeException("로그아웃된 회원입니다.");
+			}
+		}
 
 		if (tokenValid.equals("EXPIRED")) {
 			//만료된 토큰은 리프레시토큰을 활용해서 토큰 발급
@@ -85,10 +93,11 @@ public class JwtFilter extends OncePerRequestFilter {
 					}
 					Long userId = Long.valueOf(tokenValid);
 
-					RefreshToken findRefreshToken = refreshTokenStore.findByUserId(userId)
+					// RefreshToken findRefreshToken = refreshTokenStore.findByUserId(userId)
+					// 	.orElseThrow(() -> new RuntimeException("리프레시 토큰이 존재하지 않아 토큰 갱신이 불가능합니다."));
+					Optional.ofNullable(tokenRepository.findByKey("refresh;id" + tokenValid))
 						.orElseThrow(() -> new RuntimeException("리프레시 토큰이 존재하지 않아 토큰 갱신이 불가능합니다."));
-
-					String accessToken = createAccessToken(findRefreshToken.getToken(), userId);
+					String accessToken = createAccessToken(refreshToken, userId);
 					response.setHeader(UtilString.AUTHORIZATION.value(), accessToken);
 				}
 			}

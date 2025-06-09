@@ -1,6 +1,7 @@
 package com.memo.user.service;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -21,6 +22,7 @@ import com.memo.storage.RefreshToken;
 import com.memo.storage.RefreshTokenRepository;
 import com.memo.storage.TokenBlackList;
 import com.memo.storage.TokenBlackListRepository;
+import com.memo.storage.TokenRepository;
 import com.memo.user.DTO.UserRequestDto;
 import com.memo.user.entity.LoginType;
 import com.memo.user.entity.User;
@@ -47,6 +49,7 @@ public class UserService {
 	private final CustomPasswordEncoder passwordEncoder;
 	private final EmailService signupEmailService;
 	private final TokenBlackListRepository tokenBlackListStore;
+	private final TokenRepository tokenRepository;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
 		// User user = kakaoApiClient.oAuthLogin(code);
@@ -54,15 +57,24 @@ public class UserService {
 		//인증된 객체 넣어주고
 		setAuthentication(user); //굳이? 컨트롤러단에서 실행되는건데?
 		setResponseToken(user, response);
+		log.info("userID: {}", user.getAccessToken());
+		// tokenRepository.save("kakaoAccess;id" + user.getId(), user.getAccessToken(), user.getAccessTokenExpires(), TimeUnit.SECONDS);
+		// tokenRepository.save("kakaoRefresh;id" + user.getId(), user.getRefreshToken(), user.getRefreshTokenExpires(), TimeUnit.SECONDS);
 
 		return user;
 	}
 	private void setResponseToken(User user, HttpServletResponse response) {
 		// 토큰 발급해주기,
 		String accessToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
-		String refreshToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
+		String refreshToken = tokenProvider.createRefreshToken(user.getRole().name(), user.getId());
 		//리프레시 토큰은 스토리지에 저장
-		refreshTokenStore.save(new RefreshToken(user.getId(), refreshToken));
+		// refreshTokenStore.save(new RefreshToken(user.getId(), refreshToken));
+		tokenRepository.save("refresh;id" + user.getId(), refreshToken, 3600 * 24 * 7, TimeUnit.SECONDS);//3600:1시간
+		// String kakaoRefresh = user.getRefreshToken();
+		// String kakaoAccess = user.getAccessToken();
+		// log.info("카카오 토큰: {}" , kakaoAccess);
+		// tokenRepository.save("kakaoAccess;id" + user.getId(), kakaoAccess);
+		// tokenRepository.save("kakaoRefresh;id" + user.getId(), kakaoRefresh);
 
 		//토큰 header에 넣어주기
 		response.setHeader(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);
@@ -97,15 +109,23 @@ public class UserService {
 			case NATIVE -> logout(jwt);
 			case KAKAO -> kakaoApiClient.logout(accessToken, jwt, user);
 		}
+		tokenRepository.deleteByKey("refresh;id" + user.getId());
+		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
+		tokenRepository.save("blackList;id" + user.getId(), token);
+		tokenRepository.deleteByKey("kakaoAccess;id" + user.getId());
+		tokenRepository.deleteByKey("kakaoRefresh;id" + user.getId());
 	}
 
 	@Transactional
 	public void logout(String token) {
 		String stringId = tokenProvider.getClaims(token).getSubject();
-		refreshTokenStore.deleteByUserId(Long.valueOf(stringId));
+		// refreshTokenStore.deleteByUserId(Long.valueOf(stringId));
+		tokenRepository.deleteByKey("refresh;id" + stringId);
 		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
-
-		tokenBlackListStore.save(new TokenBlackList(token));
+		tokenRepository.save("blackList;id" + stringId, token);
+		tokenRepository.deleteByKey("kakaoAccess;id" + stringId);
+		tokenRepository.deleteByKey("kakaoRefresh;id" + stringId);
+		// tokenBlackListStore.save(new TokenBlackList(token));
 		//리프레시 쿠키 삭제하도록 응답
 	}
 

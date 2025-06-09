@@ -50,6 +50,8 @@ public class User {
 	@Setter
 	private Integer refreshTokenExpires; //초단위
 	@Setter
+	private Integer accessTokenExpires;
+	@Setter
 	private String accessToken;
 
 	@Setter

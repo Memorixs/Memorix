@@ -2,6 +2,7 @@ package com.memo.user.oauth.kakao;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpEntity;
@@ -19,8 +20,10 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.memo.common.properties.OAuth2ClientProperties;
+import com.memo.storage.TokenRepository;
 import com.memo.user.entity.Role;
 import com.memo.user.entity.User;
+import com.memo.user.repository.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,9 +38,11 @@ public class KakaoApiClient {
 	private final ObjectMapper objectMapper;
 	private final RestTemplate restTemplate;
 	private final String clientId;
+	private final TokenRepository tokenRepository;
+	private final UserRepository userRepository;
 
-
-	public KakaoApiClient(OAuth2ClientProperties oAuth2ClientProperties, ObjectMapper objectMapper, RestTemplate restTemplate) {
+	public KakaoApiClient(OAuth2ClientProperties oAuth2ClientProperties, ObjectMapper objectMapper, RestTemplate restTemplate,
+		TokenRepository tokenRepository, UserRepository userRepository) {
 		this.clientId = oAuth2ClientProperties.getRegistration().get("kakao").getClientId();
 		this.tokenUrl = oAuth2ClientProperties.getProvider().get("kakao").getTokenUri();
 		this.redirectUrl = oAuth2ClientProperties.getRegistration().get("kakao").getRedirectUri();
@@ -45,6 +50,8 @@ public class KakaoApiClient {
 		this.authUrl = oAuth2ClientProperties.getProvider().get("kakao").getAuthorizationUri();
 		this.objectMapper = objectMapper;
 		this.restTemplate = restTemplate;
+		this.tokenRepository = tokenRepository;
+		this.userRepository = userRepository;
 	}
 
 
@@ -67,22 +74,16 @@ public class KakaoApiClient {
 		return redirectURL;
 	}
 
-	public User createUser(String code) {
-		KakaoTokenResponse oAuthResponse = requestAccessToken(code);
-
-		log.info("accessToken: {}", oAuthResponse.getAccessToken());
-		KakaoInfo kakaoUser = requestUserInfo(oAuthResponse.getAccessToken());
-
+	public User createUser(KakaoTokenResponse token) { //매번 로그인할 때마다 거쳐야함
+		KakaoInfo kakaoUser = requestUserInfo(token.getAccessToken());
 		log.info("login user: {}", kakaoUser.toString());
 
 		User user = User.from(kakaoUser);
-		user.setRefreshToken(oAuthResponse.getRefreshToken());
-		user.setAccessToken(oAuthResponse.getAccessToken());
-		user.setRefreshTokenExpires(oAuthResponse.getRefreshTokenExpiresIn());
-		user.setRole(Role.USER);
+		User newUser = userRepository.findByEmail(user.getEmail())
+			.orElseGet(() -> userRepository.save(user));
+		newUser.setRole(Role.USER);
 
-
-		return user;
+		return newUser;
 	}
 
 	public KakaoTokenResponse requestAccessToken(String code) {
@@ -132,28 +133,24 @@ public class KakaoApiClient {
 	}
 
 	public void logout(String token, String blackListToken, User user) {
-		// int status = validateToken(token);
-		// if (status == 401) {
-		// 	String refreshToken = user.getRefreshToken();
-		// 	KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
-		// 	token = response.getAccessToken();
-		// }
+		String logout = "https://kapi.kakao.com/v1/user/logout";
+		int status = validateToken(token);
+		if (status == 401) {
+			String refreshToken = tokenRepository.findByKey("kakaoRefresh;id"+user.getId());
+
+			KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
+			token = response.getAccessToken();
+		}
+
 		HttpHeaders header = new HttpHeaders();
+		header.setBearerAuth(token);
 		header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		// header.set("Authorization", "Bearer " + token);
-		String logout = "https://kauth.kakao.com/oauth/logout";
-		String logoutRedirectUrl = "http://localhost:8080/logout/oauth2/kakao";
-		String url = logout + "?client_id=" + clientId +
-			"&logout_redirect_uri=" + logoutRedirectUrl +
-			"&state=" + blackListToken;
+		HttpEntity<?> requestLogout = new HttpEntity<>(header);
 
-		ResponseEntity<Void> response = restTemplate.exchange(
-			url,
-			HttpMethod.GET,
-			null,          // GET이므로 HttpEntity는 필요 없음
-			Void.class
-		);
+		header.set("Authorization", "Bearer " + token);
+		ResponseEntity<KakaoTokenInfo> response = restTemplate.postForEntity(logout, requestLogout, KakaoTokenInfo.class);
+
 		log.info(response.toString());
 
 		} //logoutRedirectUrl로 리다이렉트
