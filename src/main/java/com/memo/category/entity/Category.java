@@ -43,4 +43,16 @@ public class Category {
 			.map(Category::entityToDto)
 			.toList();
 	}
+
+	private Category(String name, User user){
+		this.name = name;
+		this.createdAt = LocalDateTime.now(); //timeZone을 서울로 설정했으므로 서울 날짜로 들어감
+		this.updatedAt = LocalDateTime.now();
+		this.isDeleted = false;
+		this.user = user;
+	}
+
+	public static Category createByUser(String name, User user) {
+		return new Category(name, user);
+	}
 }

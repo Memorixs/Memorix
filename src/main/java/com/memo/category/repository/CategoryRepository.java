@@ -10,5 +10,7 @@ import com.memo.category.entity.Category;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 	List<Category> findByUserId(Long id);
+
+	Category findByName(String name);
 }
 

@@ -2,6 +2,8 @@ package com.memo.common.config;
 
 import static org.springframework.security.config.Customizer.*;
 
+import java.util.TimeZone;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -30,6 +33,11 @@ public class OAuth2LoginSecurityConfig {
 	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
 	private final TokenRepository tokenRepository;
+
+	@PostConstruct
+	public void started() {
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
+	}
 
 	@Bean
 	public RestTemplate restTemplate() {
