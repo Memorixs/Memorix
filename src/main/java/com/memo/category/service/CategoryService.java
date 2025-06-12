@@ -28,7 +28,7 @@ public class CategoryService {
 
 
 	public ListResponse<CategoryResponse> findByUser(User user) {
-		List<Category> entities = categoryRepository.findByUserId(user.getId());
+		List<Category> entities = categoryRepository.findByUserIdAndIsDeletedFalse(user.getId());
 		List<CategoryResponse> response = Category.entityToDto(entities);
 		return new ListResponse<>(response.size(), response);
 	}

@@ -18,7 +18,6 @@ import com.memo.category.service.CategoryService;
 import com.memo.common.security.CustomUserDetails;
 import com.memo.user.entity.User;
 
-import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 
 @RestController
