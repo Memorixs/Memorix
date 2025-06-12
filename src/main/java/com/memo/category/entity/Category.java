@@ -3,6 +3,7 @@ package com.memo.category.entity;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.memo.Resource;
 import com.memo.category.dto.CategoryResponse;
 import com.memo.user.entity.User;
 
@@ -20,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor
 @Getter
-public class Category {
+public class Category implements Resource {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -54,5 +55,9 @@ public class Category {
 
 	public static Category createByUser(String name, User user) {
 		return new Category(name, user);
+	}
+
+	public void updateName(String name) {
+		this.name = name;
 	}
 }
