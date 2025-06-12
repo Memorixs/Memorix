@@ -13,6 +13,7 @@ import com.memo.category.entity.Category;
 import com.memo.category.repository.CategoryRepository;
 import com.memo.common.exception.CustomException;
 import com.memo.common.exception.ExceptionType;
+import com.memo.note.service.NoteService;
 import com.memo.user.entity.User;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CategoryService {
 	private final CategoryRepository categoryRepository;
+	private final NoteService noteService;
+
 
 	public ListResponse<CategoryResponse> findByUser(User user) {
 		List<Category> entities = categoryRepository.findByUserId(user.getId());
@@ -42,8 +45,7 @@ public class CategoryService {
 
 	@Transactional
 	public void updateById(Long id, String name, User user) {
-		Category category = categoryRepository.findByIdAndIsDeletedIsFalse(id)
-			.orElseThrow(() -> new CustomException(NOT_FOUND_CATEGORY, id));
+		Category category = findById(id);
 
 		checkAuthorization(user, category);
 		//권한 확인 되면 수정
@@ -59,4 +61,23 @@ public class CategoryService {
 			throw new CustomException(FORBIDDEN, user.getId());
 		}
 	}
+
+	@Transactional
+	public void deleteById(User user, Long id) {
+		Category category = findById(id);
+		checkAuthorization(user, category); //데이티 변경 작업이므로 권한 체크
+		log.info(category.getUser().getClass().toString());
+		//soft delete
+		category.delete();
+		noteService.deleteByCategory(category);
+
+		//카테고리가 삭제되면 학습자료도 삭제되는가? -> 미분류 카테고리로 이동
+	}
+
+	private Category findById(Long id) {
+		Category category = categoryRepository.findByIdAndIsDeletedIsFalse(id)
+			.orElseThrow(() -> new CustomException(NOT_FOUND_CATEGORY, id));
+		return category;
+	}
+
 }

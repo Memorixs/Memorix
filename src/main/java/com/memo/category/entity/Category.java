@@ -35,6 +35,9 @@ public class Category implements Resource {
 	@JoinColumn(name = "user_id")
 	private User user;
 
+	// @OneToMany(mappedBy = "category")
+	// private List<Note> notes = new ArrayList<>();
+
 	public static CategoryResponse entityToDto(Category entity) {
 		return new CategoryResponse(entity.getId(), entity.getName());
 	}
@@ -45,7 +48,7 @@ public class Category implements Resource {
 			.toList();
 	}
 
-	private Category(String name, User user){
+	private Category(String name, User user) {
 		this.name = name;
 		this.createdAt = LocalDateTime.now(); //timeZone을 서울로 설정했으므로 서울 날짜로 들어감
 		this.updatedAt = LocalDateTime.now();
@@ -59,5 +62,10 @@ public class Category implements Resource {
 
 	public void updateName(String name) {
 		this.name = name;
+	}
+
+	public void delete() {
+		this.isDeleted = true;
+		// this.notes = this.notes.stream().map(note -> note.deleteCategory()).toList();
 	}
 }
