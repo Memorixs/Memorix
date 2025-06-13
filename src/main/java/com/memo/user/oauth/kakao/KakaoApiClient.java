@@ -118,26 +118,30 @@ public class KakaoApiClient {
 		return response.getBody();
 	}
 
-	public void logout(String token, User user) {
+
+	public void logout(User user) {
+		String accessToken = tokenRepository.findByKey("kakaoAccess;id" + user.getId());
 		String logout = "https://kapi.kakao.com/v1/user/logout";
-		int status = validateToken(token);
+		int status = validateToken(accessToken);
 		if (status == 401) {
 			String refreshToken = tokenRepository.findByKey("kakaoRefresh;id"+user.getId());
 
 			KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
-			token = response.getAccessToken();
+			accessToken = response.getAccessToken();
 		}
 
 		HttpHeaders header = new HttpHeaders();
-		header.setBearerAuth(token);
+		header.setBearerAuth(accessToken);
 		header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
 		HttpEntity<?> requestLogout = new HttpEntity<>(header);
 
-		header.set("Authorization", "Bearer " + token);
+		header.set("Authorization", "Bearer " + accessToken);
 		ResponseEntity<KakaoTokenInfo> response = restTemplate.postForEntity(logout, requestLogout, KakaoTokenInfo.class);
 
 		log.info(response.toString());
+		tokenRepository.deleteByKey("kakaoAccess;id" + user.getId());
+		tokenRepository.deleteByKey("kakaoRefresh;id" + user.getId());
 
 		}
 
