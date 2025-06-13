@@ -22,6 +22,7 @@ import com.memo.common.util.EmailService;
 import com.memo.common.util.UtilString;
 import com.memo.storage.TokenRepository;
 import com.memo.user.DTO.UserRequestDto;
+import com.memo.user.entity.LoginType;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
