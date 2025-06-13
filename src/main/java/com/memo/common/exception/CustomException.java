@@ -14,4 +14,9 @@ public class CustomException extends RuntimeException{
 		this.status = exception.getStatus();
 	}
 
+	public CustomException(ExceptionType exceptionType) {
+		this.message = exceptionType.getMessage();
+		this.status = exceptionType.getStatus();
+	}
+
 }

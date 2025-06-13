@@ -7,10 +7,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.memo.common.exception.CustomException;
+import com.memo.common.exception.ExceptionType;
 import com.memo.common.properties.MailProperties;
 import com.memo.common.util.EmailService;
 import com.memo.common.util.EmailUtils;
-import com.memo.storage.MailLinkToken;
 import com.memo.storage.MailLinkTokenRepository;
 import com.memo.storage.TokenRepository;
 import com.memo.user.entity.User;
@@ -53,7 +54,7 @@ public class SignupEmailService implements EmailService {
 
 	public User validateEmailToken(String token) {
 		if (tokenRepository.findByKey("email;"+token) == null) {
-			throw new RuntimeException("만료된 링크입니다. 다시 요청해주세요."); //프론트가 링크 재요청 페이지 띄우고 백엔드에 다시 요청, 메일 날리는 api따로 만들기
+			throw new CustomException(ExceptionType.EXPIRED_TOKEN); //프론트가 링크 재요청 페이지 띄우고 백엔드에 다시 요청, 메일 날리는 api따로 만들기
 		}
 		//만료되지 않았다면
 		//user 반환
