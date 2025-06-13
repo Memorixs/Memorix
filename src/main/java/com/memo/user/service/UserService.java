@@ -13,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.memo.common.exception.CustomException;
+import com.memo.common.exception.ExceptionType;
 import com.memo.common.security.CustomUserDetails;
 import com.memo.common.jwt.TokenProvider;
 import com.memo.common.util.CustomPasswordEncoder;
@@ -20,7 +22,6 @@ import com.memo.common.util.EmailService;
 import com.memo.common.util.UtilString;
 import com.memo.storage.TokenRepository;
 import com.memo.user.DTO.UserRequestDto;
-import com.memo.user.entity.LoginType;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
@@ -91,6 +92,11 @@ public class UserService {
 			case NATIVE -> logout(jwt);
 			case KAKAO -> kakaoApiClient.logout(user);
 		}
+		tokenRepository.deleteByKey("refresh;id" + user.getId());
+		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
+		tokenRepository.save("blackList;id" + user.getId(), token);
+		tokenRepository.deleteByKey("kakaoAccess;id" + user.getId());
+		tokenRepository.deleteByKey("kakaoRefresh;id" + user.getId());
 	}
 
 	@Transactional
@@ -123,9 +129,7 @@ public class UserService {
 		Optional<User> findUserByUsername  = Optional.ofNullable(userRepository.findByUsernameEquals(requestDto.getUsername()));
 
 		if(findUserByEmail.isPresent()) {
-			throw new RuntimeException("중복되는 이메일입니다.");
-		} else if (findUserByUsername.isPresent()) {
-			throw new RuntimeException("중복되는 username 입니다.");
+			throw new CustomException(ExceptionType.EXIST_EMAIL, findUserByEmail.get().getEmail());
 		}
 		//회원가입 진행
 		//1. 확인 이메일 전송
@@ -148,7 +152,7 @@ public class UserService {
 		//1. 토큰 검증 -> 만료면 다시 메일 보내기, 아니면 인증 성공 후 회원가입 진행
 		User user = signupEmailService.validateEmailToken(token);
 		Optional.ofNullable(user)
-			.orElseThrow(() -> new RuntimeException("토큰 확인 과정 중 문제가 발생했습니다."));
+			.orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND_EMAIL, token));
 		//미리 회원을 저장하고 인증이 완료되면 isVerified를 true로 변경
 		user.setIsVerified(true);
 		return user;
@@ -156,12 +160,16 @@ public class UserService {
 
 	public Long login(HttpServletResponse response, UserRequestDto requestDto) {
 		User user = userRepository.findByEmail(requestDto.getEmail())
-			.orElseThrow(() -> new RuntimeException("가입된 정보가 없습니다. email: "+ requestDto.getEmail()));
+			.orElseThrow(() -> {
+				log.info("해당 이메일을 가진 유저가 없습니다. Email: ", requestDto.getEmail());
+				return new CustomException(ExceptionType.NOT_FOUND_USER);
+			});
 		if (!isMatchesPassword(requestDto.getPassword(), user.getPassword())){
-			throw new RuntimeException("비밀번호가 일치하지 않습니다. password: " + requestDto.getPassword());
+			log.info("비밀번호가 일치하지 않습니다. Password: ", requestDto.getPassword());
+			throw new CustomException(ExceptionType.NOT_FOUND_USER);
 		}
 		if(!user.getIsVerified()) {
-			throw new RuntimeException("검증되지 않은 사용자입니다. verified: " + user.getIsVerified());
+			throw new CustomException(ExceptionType.NOT_VERIFIED_USER, user.getIsVerified());
 		}
 		//토큰 생성
 		setResponseToken(user, response);

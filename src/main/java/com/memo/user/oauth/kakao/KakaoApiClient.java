@@ -118,6 +118,7 @@ public class KakaoApiClient {
 		return response.getBody();
 	}
 
+
 	public void logout(User user) {
 		String accessToken = tokenRepository.findByKey("kakaoAccess;id" + user.getId());
 		String logout = "https://kapi.kakao.com/v1/user/logout";
