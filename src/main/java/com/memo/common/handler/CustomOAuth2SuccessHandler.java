@@ -16,6 +16,7 @@ import com.memo.common.util.UtilString;
 import com.memo.storage.RefreshToken;
 import com.memo.storage.RefreshTokenRepository;
 import com.memo.storage.TokenBlackListRepository;
+import com.memo.storage.TokenRepository;
 import com.memo.user.entity.User;
 
 import jakarta.servlet.ServletException;
@@ -32,7 +33,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 	private final RefreshTokenRepository refreshTokenStore;
 	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
-
+	private final TokenRepository tokenRepository;
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 		Authentication authentication) throws IOException, ServletException {
@@ -40,7 +41,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		CustomUserDetails userDetails = (CustomUserDetails)authentication.getPrincipal();
 		User user = userDetails.getUser();
 		log.info("succcess handler의 userDetails: {}", userDetails.toString());
-		JwtFilter jwtFilter = new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider);
+		JwtFilter jwtFilter = new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider, tokenRepository);
 
 		//성공필터에서 토큰 발급해주기,
 		String accessToken = tokenProvider.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(

@@ -20,6 +20,7 @@ import com.memo.common.jwt.JwtFilter;
 import com.memo.common.jwt.TokenProvider;
 import com.memo.storage.RefreshTokenRepository;
 import com.memo.storage.TokenBlackListRepository;
+import com.memo.storage.TokenRepository;
 
 @Configuration
 @EnableWebSecurity
@@ -28,6 +29,7 @@ public class OAuth2LoginSecurityConfig {
 	private final RefreshTokenRepository refreshTokenStore;
 	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
+	private final TokenRepository tokenRepository;
 
 	@Bean
 	public RestTemplate restTemplate() {
@@ -57,7 +59,7 @@ public class OAuth2LoginSecurityConfig {
 			.formLogin(withDefaults())
 			// .successDefaultUrl()
 			//필터 추가
-			.addFilterBefore(new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider),
+			.addFilterBefore(new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider, tokenRepository),
 				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
 		return http.build();
 	}
