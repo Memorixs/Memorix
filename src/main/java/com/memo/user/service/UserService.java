@@ -18,10 +18,9 @@ import com.memo.common.jwt.TokenProvider;
 import com.memo.common.util.CustomPasswordEncoder;
 import com.memo.common.util.EmailService;
 import com.memo.common.util.UtilString;
-import com.memo.storage.RefreshTokenRepository;
-import com.memo.storage.TokenBlackListRepository;
 import com.memo.storage.TokenRepository;
 import com.memo.user.DTO.UserRequestDto;
+import com.memo.user.entity.LoginType;
 import com.memo.user.entity.User;
 import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
@@ -87,16 +86,11 @@ public class UserService {
 		//엑세스토큰으로 요청
 		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
 		String jwt = TokenProvider.resolveToken(token);
-		String accessToken = tokenRepository.findByKey("kakaoAccess;id" + user.getId());
+
 		switch(user.getLoginType()) {
 			case NATIVE -> logout(jwt);
-			case KAKAO -> kakaoApiClient.logout(accessToken, user);
+			case KAKAO -> kakaoApiClient.logout(user);
 		}
-		tokenRepository.deleteByKey("refresh;id" + user.getId());
-		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
-		tokenRepository.save("blackList;id" + user.getId(), token);
-		tokenRepository.deleteByKey("kakaoAccess;id" + user.getId());
-		tokenRepository.deleteByKey("kakaoRefresh;id" + user.getId());
 	}
 
 	@Transactional
@@ -105,8 +99,6 @@ public class UserService {
 		tokenRepository.deleteByKey("refresh;id" + stringId);
 		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
 		tokenRepository.save("blackList;id" + stringId, token);
-		tokenRepository.deleteByKey("kakaoAccess;id" + stringId);
-		tokenRepository.deleteByKey("kakaoRefresh;id" + stringId);
 		//리프레시 쿠키 삭제하도록 응답
 	}
 
@@ -179,5 +171,24 @@ public class UserService {
 	private boolean isMatchesPassword(String rawPassword, String encodedPassword){
 		PasswordEncoder endcoder = passwordEncoder.passwordEncoder();
 		return endcoder.matches(rawPassword, encodedPassword);
+	}
+
+	@Transactional
+	public void deleteUser(User user, HttpServletRequest request, HttpServletResponse response) {
+		//카카오 로그인 사용자인지 확인
+		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
+		String jwt = TokenProvider.resolveToken(token);
+		if (user.getLoginType() == LoginType.KAKAO) {
+			kakaoApiClient.logout(user); //카카오 르그아웃에서 쿠키 삭제, 블랙리스트 등록, 리스레시 토큰 삭제 진행하고 있음
+		}
+		deleteTokenById(user.getId(), jwt, response);
+		userRepository.softDeleteById(user.getId());
+	}
+
+	private void deleteTokenById(Long id, String jwt, HttpServletResponse response) {
+		//블랙리스트에 추가,토큰 비우기, 쿠키
+		tokenRepository.save("blackList;id"+id, jwt);
+		deleteCookie(response);
+		tokenRepository.deleteByKey("refresh;id" + id);
 	}
 }
