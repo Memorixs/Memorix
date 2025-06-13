@@ -29,7 +29,7 @@ public class JwtFilter extends OncePerRequestFilter {
 	// private final RefreshTokenStore refreshTokenStore;
 	private final RefreshTokenRepository refreshTokenStore;
 	private final TokenBlackListRepository tokenBlackListStore;
-	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm", "/favicon.ico"};
+	private final String[] permitList = {"/login","/logout/oauth2/kakao", "/webjars", "/.well-known", "/api/signup","/api/auth/confirm", "/favicon.ico", "/api-docs", "/swagger-ui"};
 	private final TokenProvider tokenProvider;
 	private final TokenRepository tokenRepository;
 
