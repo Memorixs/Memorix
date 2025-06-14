@@ -134,7 +134,7 @@ public class UserService {
 		}
 		//회원가입 진행
 		//1. 확인 이메일 전송
-		signupEmailService.sendVerifiedMessage(requestDto.getEmail()); ///api/auth/confirm"로 리다이렉트 -> 회원이 영원히 누르지 않으면 여기서 멈출듯
+		// signupEmailService.sendVerifiedMessage(requestDto.getEmail()); ///api/auth/confirm"로 리다이렉트 -> 회원이 영원히 누르지 않으면 여기서 멈출듯
 //메일 전송 후 레디스에 email + 만료시간 설정 sendVerifiedMessage내에서 실행
 		String password = getEncodedPassword(requestDto.getPassword());
 		User user = User.of(requestDto, password);
