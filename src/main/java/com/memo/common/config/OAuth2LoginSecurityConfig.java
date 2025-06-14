@@ -4,7 +4,6 @@ import static org.springframework.security.config.Customizer.*;
 
 import java.util.TimeZone;
 
-import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,23 +18,15 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.memo.common.jwt.JwtFilter;
 import com.memo.common.jwt.TokenProvider;
-import com.memo.storage.RefreshTokenRepository;
-import com.memo.storage.TokenBlackListRepository;
-import com.memo.storage.TokenRepository;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class OAuth2LoginSecurityConfig {
-	private final RefreshTokenRepository refreshTokenStore;
-	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
-	private final TokenRepository tokenRepository;
 	private final CorsConfig corsConfig;
 
 	@PostConstruct
@@ -71,7 +62,7 @@ public class OAuth2LoginSecurityConfig {
 			.formLogin(withDefaults())
 			// .successDefaultUrl()
 			//필터 추가
-			.addFilterBefore(new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider, tokenRepository),
+			.addFilterBefore(new JwtFilter(tokenProvider),
 				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
 
 		return http.build();

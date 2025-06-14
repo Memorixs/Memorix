@@ -3,6 +3,7 @@ package com.memo.common.jwt;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -15,8 +16,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import com.memo.common.exception.CustomException;
+import com.memo.common.exception.ExceptionType;
+import com.memo.common.exception.TokenExceptionType;
 import com.memo.common.util.UtilString;
 import com.memo.common.properties.JwtProperties;
+import com.memo.storage.TokenRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -34,10 +39,12 @@ public class TokenProvider {
 
 	private final SecretKey secretKey;
 	private final UserDetailsService customUserDetailsService;
+	private final TokenRepository tokenRepository;
 
-	TokenProvider(JwtProperties jwtProperties, UserDetailsService customUserDetailsService) {
+	TokenProvider(JwtProperties jwtProperties, UserDetailsService customUserDetailsService, TokenRepository tokenRepository) {
 		this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(jwtProperties.getSecretKey()));
 		this.customUserDetailsService = customUserDetailsService;
+		this.tokenRepository = tokenRepository;
 	}
 	public  String create(String role, String id, Date expired){
 		log.info("Create Token with {} and {}", role, id);
@@ -76,6 +83,21 @@ public class TokenProvider {
 		return create(role, String.valueOf(id), expired);
 	}
 
+	public String renewalAccessToken(String refreshToken) {
+		String id = getClaims(refreshToken).getSubject();
+		String token = findRefreshToken(id);
+		String role = (String)getClaims(token).get("role"); //role을 가지고 오기위해 디비에 접근하기보다 리프레시 토큰안에 있는 정보 활용
+		String accessToken = create(role, id,
+			Date.from(Instant.now().plus(3, ChronoUnit.HOURS)));
+
+		return accessToken;
+	}
+
+	public String findRefreshToken(String id) {
+		return Optional.ofNullable(tokenRepository.findByKey("refresh;id" + id))
+			.orElseThrow(() -> new CustomException(TokenExceptionType.NOT_FOUND_TOKEN));
+	}
+
 	public String validate(String jwt) {
 		try {
 
@@ -83,14 +105,11 @@ public class TokenProvider {
 			String subject = claims.getPayload().getSubject();
 			return subject; //userId
 			//OK, we can trust this JWT
-
 		} catch (ExpiredJwtException e) {
-			e.getStackTrace();
-			return UtilString.EXPIRED.value();
+			throw new CustomException(TokenExceptionType.EXPIRED_TOKEN);
 			//don't trust the JWT!
 		} catch (JwtException e) {
-			e.getStackTrace();
-			return UtilString.EXCEPTION.value();
+			throw new CustomException(TokenExceptionType.TOKEN_EXCEPTION);
 		}
 	}
 
@@ -118,11 +137,21 @@ public class TokenProvider {
 		}
 	}
 
-	public void setAuthentication(String id) {
+	public void setAuthentication(String token) {
 		//인증된 유저 정보를 가지고 인증된 토큰 생성
-		UserDetails userDetails = customUserDetailsService.loadUserByUsername(id);
+		String id = getClaims(token).getSubject();
+		UserDetails userDetails = customUserDetailsService.loadUserByUsername(id); //이미 여기서 security Context Holder에 인증된 유저가 들어가 있음?
 		Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, id, userDetails.getAuthorities());
 		SecurityContextHolder.getContext().setAuthentication(authentication);
+	}
+
+	public boolean isBlackListUser(String token ,String id) {
+		if(tokenRepository.findByKey("blackList;id" + id) != null) {
+			if (tokenRepository.findByKey("blackList;id" + id).equals(token)) {
+				throw new CustomException(ExceptionType.LOGOUT_USER);
+			}
+		}
+		return false ;
 	}
 }
 

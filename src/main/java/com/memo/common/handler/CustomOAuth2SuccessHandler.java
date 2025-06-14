@@ -41,7 +41,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 		CustomUserDetails userDetails = (CustomUserDetails)authentication.getPrincipal();
 		User user = userDetails.getUser();
 		log.info("succcess handler의 userDetails: {}", userDetails.toString());
-		JwtFilter jwtFilter = new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider, tokenRepository);
 
 		//성공필터에서 토큰 발급해주기,
 		String accessToken = tokenProvider.create(user.getRole().name(), String.valueOf(user.getId()), Date.from(
