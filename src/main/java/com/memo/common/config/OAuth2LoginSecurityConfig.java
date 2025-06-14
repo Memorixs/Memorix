@@ -4,6 +4,7 @@ import static org.springframework.security.config.Customizer.*;
 
 import java.util.TimeZone;
 
+import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.memo.common.jwt.JwtFilter;
 import com.memo.common.jwt.TokenProvider;
@@ -33,6 +36,7 @@ public class OAuth2LoginSecurityConfig {
 	private final TokenBlackListRepository tokenBlackListStore;
 	private final TokenProvider tokenProvider;
 	private final TokenRepository tokenRepository;
+	private final CorsConfig corsConfig;
 
 	@PostConstruct
 	public void started() {
@@ -48,7 +52,7 @@ public class OAuth2LoginSecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 			.csrf((csrf) -> csrf.disable()) //GET 이외의 요청 허용하기 위해
-
+			.cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
 			.sessionManagement((session) -> session
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
@@ -69,6 +73,7 @@ public class OAuth2LoginSecurityConfig {
 			//필터 추가
 			.addFilterBefore(new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider, tokenRepository),
 				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
+
 		return http.build();
 	}
 }
