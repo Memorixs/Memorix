@@ -123,7 +123,7 @@ public class UserService {
 	}
 
 	@Transactional
-	public User signup(UserRequestDto requestDto) throws MessagingException {
+	public User signup(UserRequestDto requestDto) {
 		//이메일 인증 -> 임시번호
 		//인증했다치고
 		Optional<User> findUserByEmail = Optional.ofNullable(userRepository.findByEmailEquals(requestDto.getEmail()));

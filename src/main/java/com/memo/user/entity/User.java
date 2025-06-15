@@ -93,7 +93,7 @@ public class User {
 	public static User of(UserRequestDto requestDto, String password) {
 
 		return new User(requestDto.getEmail(), requestDto.getUsername(), password, null, null,
-			LoginType.NATIVE, false, Role.USER);
+			LoginType.NATIVE, true, Role.USER);
 	}
 
 

@@ -70,7 +70,7 @@ public class SignupController {
 		}
 	)
 	@PostMapping("/api/signup")
-	public ResponseEntity<User> signup(@RequestBody SignupFormRequestDto requestDto) throws MessagingException {
+	public ResponseEntity<User> signup(@RequestBody SignupFormRequestDto requestDto) {
 		User user = userService.signup(requestDto);
 		return ResponseEntity.ok().body(user);
 	}
