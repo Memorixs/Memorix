@@ -113,7 +113,6 @@ public class UserService {
 		//이메일 인증 -> 임시번호
 		//인증했다치고
 		Optional<User> findUserByEmail = Optional.ofNullable(userRepository.findByEmailEquals(requestDto.getEmail()));
-		Optional<User> findUserByUsername  = Optional.ofNullable(userRepository.findByUsernameEquals(requestDto.getUsername()));
 
 		if(findUserByEmail.isPresent()) {
 			throw new CustomException(ExceptionType.EXIST_EMAIL, findUserByEmail.get().getEmail());
