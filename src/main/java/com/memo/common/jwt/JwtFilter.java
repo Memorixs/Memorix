@@ -34,7 +34,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		FilterChain filterChain) throws ServletException, IOException {
 
 		//인증이 필요하지 않은 요청
-		ignoreJwtFilter(request, response, filterChain);
+		ignoreRequest(request, response, filterChain);
 
 		//토큰 헤더에서 꺼내기
 		String token = resolveTokenFromRequest(request);
@@ -88,7 +88,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		return refreshToken;
 	}
 
-	private void ignoreJwtFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException{
+	private void ignoreRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException{
 		String requestUri = request.getRequestURI();
 		log.info("request URI: {}", request.getRequestURI());
 		for(String uri:permitList) {
