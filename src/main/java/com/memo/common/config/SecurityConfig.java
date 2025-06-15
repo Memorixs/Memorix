@@ -25,7 +25,7 @@ import com.memo.common.jwt.TokenProvider;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class OAuth2LoginSecurityConfig {
+public class SecurityConfig {
 	private final TokenProvider tokenProvider;
 	private final CorsConfig corsConfig;
 

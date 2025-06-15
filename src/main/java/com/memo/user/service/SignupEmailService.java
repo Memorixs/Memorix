@@ -1,6 +1,5 @@
 package com.memo.user.service;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.mail.javamail.JavaMailSender;

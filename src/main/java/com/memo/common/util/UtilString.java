@@ -6,8 +6,6 @@ import lombok.AllArgsConstructor;
 public enum UtilString {
 	BEARER("Bearer "),
 	AUTHORIZATION("Authorization"),
-	EXCEPTION("EXCEPTION"),
-	EXPIRED("EXPIRED"),
 	COOKIE_NAME("refresh-token"),
 	EMAIL_AUTH_URL("http://localhost:8080/api/auth/confirm?email="),
 	;

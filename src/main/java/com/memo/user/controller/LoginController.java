@@ -41,36 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 public class LoginController {
 
 	private final KakaoApiClient kakaoApiClient;
-	private final CustomOAuthService customOAuthService;
 	private final UserService userService;
-
-	@GetMapping("/test")
-	public String test() {
-
-		// log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().isAuthenticated());
-		// log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().toString());
-
-		return "ok";
-	}
-
-	@ResponseBody
-	@GetMapping("/test/oauth/login")
-	public String testOAuthLogin(
-		Authentication authentication,
-		@AuthenticationPrincipal OAuth2User oauth
-	) { //세션 정보 받아오기 (DI 의존성 주입)
-
-		//방법 1
-		OAuth2User oAuth2User = (OAuth2User)authentication.getPrincipal();
-		System.out.println("authentication: " + oAuth2User.getAttributes());
-		log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().isAuthenticated());
-		log.info("인증 완료된 객체입니까? {}", SecurityContextHolder.getContext().getAuthentication().toString());
-
-		//방법 2
-		System.out.println("OAuth2User:" + oauth.getAttributes());
-
-		return "OAuth 세션 정보 확인";
-	}
 
 	@Operation(
 		summary = "카카오 간편 로그인",
