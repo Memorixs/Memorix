@@ -86,7 +86,7 @@ public class TokenProvider {
 
 	public String renewalAccessToken(String refreshToken) {
 		String id = getClaims(refreshToken).getSubject();
-		String token = findRefreshToken(id);
+		String token = findRefreshToken(Long.parseLong(id));
 		String role = (String)getClaims(token).get("role"); //role을 가지고 오기위해 디비에 접근하기보다 리프레시 토큰안에 있는 정보 활용
 		String accessToken = create(role, id,
 			Date.from(Instant.now().plus(3, ChronoUnit.HOURS)));
@@ -94,8 +94,8 @@ public class TokenProvider {
 		return accessToken;
 	}
 
-	public String findRefreshToken(String id) {
-		return Optional.ofNullable(tokenRepository.findByKey("refresh;id" + id))
+	public String findRefreshToken(Long id) {
+		return Optional.ofNullable(tokenRepository.find(id, UtilString.SERVICE_REFRESH_TOKEN.value()))
 			.orElseThrow(() -> new CustomException(TokenExceptionType.NOT_FOUND_TOKEN));
 	}
 
@@ -152,9 +152,10 @@ public class TokenProvider {
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 	}
 
-	public boolean isBlackListUser(String token ,String id) {
-		if(tokenRepository.findByKey("blackList;id" + id) != null) {
-			if (tokenRepository.findByKey("blackList;id" + id).equals(token)) {
+	public boolean isBlackListUser(String token ,Long id) {
+		String value = tokenRepository.find(id, UtilString.BLACKLIST_TOKEN.value());
+		if(value != null) {
+			if ((value).equals(token)) {
 				throw new CustomException(ExceptionType.LOGOUT_USER);
 			}
 		}

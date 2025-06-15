@@ -41,8 +41,8 @@ public class JwtFilter extends OncePerRequestFilter {
 		//해시알고리즘으로 signature 암호화
 
 		try{
-			String tokenValid = tokenProvider.validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
-			tokenProvider.isBlackListUser(token, tokenValid); //블랙리스트에 들어가는 토큰은 액세스 토큰이므로 엑세스 토큰 만료시간 만큼 timeout을 지정?
+			String userId = tokenProvider.validate(token); //id로 사용자 가져와서 securitycontextholder에 적재?
+			tokenProvider.isBlackListUser(token, Long.parseLong(userId)); //블랙리스트에 들어가는 토큰은 액세스 토큰이므로 엑세스 토큰 만료시간 만큼 timeout을 지정?
 		} catch (CustomException e) {
 			if(e.getCode() == 4001) { //엑세스 토큰 만료
 				String refreshToken = getTokenFromCookie(request);
