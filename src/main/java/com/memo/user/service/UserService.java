@@ -154,8 +154,11 @@ public class UserService {
 			log.info("비밀번호가 일치하지 않습니다. Password: ", requestDto.getPassword());
 			throw new CustomException(ExceptionType.NOT_FOUND_USER);
 		}
-		if(!user.getIsVerified()) {
-			throw new CustomException(ExceptionType.NOT_VERIFIED_USER, user.getIsVerified());
+		// if(!user.getIsVerified()) {
+		// 	throw new CustomException(ExceptionType.NOT_VERIFIED_USER, user.getIsVerified());
+		// }
+		if(user.getIsDeleted()) {
+			throw new CustomException(ExceptionType.NOT_FOUND_USER);
 		}
 		//토큰 생성
 		setResponseToken(user, response);
@@ -173,7 +176,7 @@ public class UserService {
 		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
 		String jwt = TokenProvider.resolveToken(token);
 		if (user.getLoginType() == LoginType.KAKAO) {
-			kakaoApiClient.logout(user); //카카오 르그아웃에서 쿠키 삭제, 블랙리스트 등록, 리스레시 토큰 삭제 진행하고 있음
+			kakaoApiClient.logout(user); //카카오 르그아웃에서 쿠키 삭제, 블랙리스트 등록, 리스레시 토큰 삭제 진행하고 있음 -> 외부 통신인 경우 트랜잭션에서 제외하는 게 좋음
 		}
 		deleteTokenById(user.getId(), jwt, response);
 		userRepository.softDeleteById(user.getId());
@@ -181,8 +184,8 @@ public class UserService {
 
 	private void deleteTokenById(Long id, String jwt, HttpServletResponse response) {
 		//블랙리스트에 추가,토큰 비우기, 쿠키
-		tokenRepository.save("blackList;id"+id, jwt);
+		tokenRepository.save(id + UtilString.BLACKLIST_TOKEN.value(), jwt);
 		deleteCookie(response);
-		tokenRepository.deleteByKey("refresh;id" + id);
+		tokenRepository.deleteByKey(id + UtilString.SERVICE_REFRESH_TOKEN.value());
 	}
 }
