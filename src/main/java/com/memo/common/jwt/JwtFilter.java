@@ -34,7 +34,10 @@ public class JwtFilter extends OncePerRequestFilter {
 		FilterChain filterChain) throws ServletException, IOException {
 
 		//인증이 필요하지 않은 요청
-		ignoreRequest(request, response, filterChain);
+		if(ignoreRequest(request)) {
+			filterChain.doFilter(request, response);
+			return;
+		}
 
 		//토큰 헤더에서 꺼내기
 		String token = resolveTokenFromRequest(request);
@@ -88,16 +91,15 @@ public class JwtFilter extends OncePerRequestFilter {
 		return refreshToken;
 	}
 
-	private void ignoreRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException{
+	private boolean ignoreRequest(HttpServletRequest request){
 		String requestUri = request.getRequestURI();
 		log.info("request URI: {}", request.getRequestURI());
 		for(String uri:permitList) {
-			if (requestUri.equals("/")) {
-				filterChain.doFilter(request, response);
-			}
-			if (requestUri.contains(uri)) {
-				filterChain.doFilter(request, response);
+			if (requestUri.equals("/") || requestUri.contains(uri)) {
+				return true;
 			}
 		}
+		return false;
 	}
+
 }
