@@ -21,18 +21,13 @@ import org.springframework.web.client.RestTemplate;
 
 import com.memo.common.jwt.JwtFilter;
 import com.memo.common.jwt.TokenProvider;
-import com.memo.storage.RefreshTokenRepository;
-import com.memo.storage.TokenBlackListRepository;
-import com.memo.storage.TokenRepository;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class OAuth2LoginSecurityConfig {
-	private final RefreshTokenRepository refreshTokenStore;
-	private final TokenBlackListRepository tokenBlackListStore;
+public class SecurityConfig {
 	private final TokenProvider tokenProvider;
-	private final TokenRepository tokenRepository;
+	private final CorsConfig corsConfig;
 
 	@PostConstruct
 	public void started() {
@@ -48,7 +43,7 @@ public class OAuth2LoginSecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 			.csrf((csrf) -> csrf.disable()) //GET 이외의 요청 허용하기 위해
-
+			.cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
 			.sessionManagement((session) -> session
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
@@ -67,8 +62,9 @@ public class OAuth2LoginSecurityConfig {
 			.formLogin(withDefaults())
 			// .successDefaultUrl()
 			//필터 추가
-			.addFilterBefore(new JwtFilter(refreshTokenStore, tokenBlackListStore, tokenProvider, tokenRepository),
+			.addFilterBefore(new JwtFilter(tokenProvider),
 				UsernamePasswordAuthenticationFilter.class); //UsernamePasswordAuthenticationFilter: ID와 PW를 사용하는 Form기반 유저 인증을 처리하는 Filter
+
 		return http.build();
 	}
 }

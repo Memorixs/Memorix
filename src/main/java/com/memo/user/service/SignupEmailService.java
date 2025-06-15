@@ -1,6 +1,5 @@
 package com.memo.user.service;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.mail.javamail.JavaMailSender;
@@ -54,7 +53,7 @@ public class SignupEmailService implements EmailService {
 
 	public User validateEmailToken(String token) {
 		if (tokenRepository.findByKey("email;"+token) == null) {
-			throw new CustomException(ExceptionType.EXPIRED_TOKEN); //프론트가 링크 재요청 페이지 띄우고 백엔드에 다시 요청, 메일 날리는 api따로 만들기
+			throw new CustomException(ExceptionType.EXPIRED_LINK); //프론트가 링크 재요청 페이지 띄우고 백엔드에 다시 요청, 메일 날리는 api따로 만들기
 		}
 		//만료되지 않았다면
 		//user 반환

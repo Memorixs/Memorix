@@ -2,8 +2,9 @@ package com.memo.user.oauth.kakao;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -11,67 +12,39 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.memo.common.properties.OAuth2ClientProperties;
+import com.memo.common.util.UtilString;
 import com.memo.storage.TokenRepository;
 import com.memo.user.entity.Role;
 import com.memo.user.entity.User;
+import com.memo.user.oauth.OAuthApiClient;
+import com.memo.user.oauth.OAuthUserResponse;
+import com.memo.user.oauth.TokenResponse;
 import com.memo.user.repository.UserRepository;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class KakaoApiClient {
-	private final String authUrl;
-	private final String tokenUrl;
-	private final String userInfoUrl;
-	private final String redirectUrl;
+@RequiredArgsConstructor
+public class KakaoApiClient implements OAuthApiClient {
 
-	private final ObjectMapper objectMapper;
 	private final RestTemplate restTemplate;
-	private final String clientId;
 	private final TokenRepository tokenRepository;
 	private final UserRepository userRepository;
-
-	public KakaoApiClient(OAuth2ClientProperties oAuth2ClientProperties, ObjectMapper objectMapper, RestTemplate restTemplate,
-		TokenRepository tokenRepository, UserRepository userRepository) {
-		this.clientId = oAuth2ClientProperties.getRegistration().get("kakao").getClientId();
-		this.tokenUrl = oAuth2ClientProperties.getProvider().get("kakao").getTokenUri();
-		this.redirectUrl = oAuth2ClientProperties.getRegistration().get("kakao").getRedirectUri();
-		this.userInfoUrl = oAuth2ClientProperties.getProvider().get("kakao").getUserInfoUri();
-		this.authUrl = oAuth2ClientProperties.getProvider().get("kakao").getAuthorizationUri();
-		this.objectMapper = objectMapper;
-		this.restTemplate = restTemplate;
-		this.tokenRepository = tokenRepository;
-		this.userRepository = userRepository;
-	}
+	private final KakaoRequest kakaoRequest;
+	@Value("${spring.security.oauth2.client.provider.kakao.token-uri}")
+	private String tokenUrl;
+	@Value("${spring.security.oauth2.client.provider.kakao.user-info-uri}")
+	private String userInfoUrl;
 
 
-
-	public String authServerRequest() {
-		//google api와 통신하기 위한 요청 만들기(승인 코드를 받기 위한 요청) //
-		Map<String, String> params = new HashMap<>();
-		params.put("client_id", clientId);
-		params.put("redirect_uri", redirectUrl);
-		params.put("response_type", "code");
-
-		String parameterString=params.entrySet().stream()
-			.map(x->x.getKey()+"="+x.getValue())
-			.collect(Collectors.joining("&"));
-		String redirectURL=authUrl+"?"+parameterString;
-		log.info("redirect-URL={}", redirectURL);
-		return redirectURL;
-	}
-
-	public User createUser(KakaoTokenResponse token) { //매번 로그인할 때마다 거쳐야함
-		KakaoInfo kakaoUser = requestUserInfo(token.getAccessToken());
+	public User createUser(TokenResponse token) { //매번 로그인할 때마다 거쳐야함
+		OAuthUserResponse kakaoUser = requestOAuthUser(token.getAccessToken());
 		log.info("login user: {}", kakaoUser.toString());
 
 		User user = User.from(kakaoUser);
@@ -82,76 +55,93 @@ public class KakaoApiClient {
 		return newUser;
 	}
 
-	public KakaoTokenResponse requestAccessToken(String code) {
+	public User login(String code){
+		TokenResponse response = requestAccessToken(code);
+		User user = createUser(response);
+		tokenRepository.save("kakaoAccess;id" + user.getId(), response.getAccessToken(), response.getExpiresIn(), TimeUnit.SECONDS);
+		tokenRepository.save("kakaoRefresh;id" + user.getId(), response.getRefreshToken(), response.getRefreshTokenExpiresIn(), TimeUnit.SECONDS);
+		return user;
+	}
+
+	public TokenResponse requestAccessToken(String code) {
 		RestTemplate restTemplate = new RestTemplate();
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		// HttpHeaders headers = new HttpHeaders();
+		// headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-		body.add("grant_type", "authorization_code");
-		body.add("client_id", clientId);
-		body.add("redirect_uri", redirectUrl);
-		body.add("code", code);
+		MultiValueMap<String, String> body = kakaoRequest.makeBody(code);
+		HttpEntity request = KakaoRequest.makeRequestEntity(MediaType.APPLICATION_FORM_URLENCODED, null, body);
+		// MultiValueMap<String, String> body = kakaoLoginParams.makebody(code);
 
-		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
+		// HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+		//HttpEntity(body), HttpEntity(body,header)
 		ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(tokenUrl, request, KakaoTokenResponse.class);
 		log.info("response: {}", response.toString());
 		return response.getBody();
 	}
-	private KakaoTokenResponse getAccessToken(ResponseEntity<String> response) throws JsonProcessingException {
-		log.info("accessTokenBody: {}",response.getBody());
-		return objectMapper.readValue(response.getBody(), KakaoTokenResponse.class);
-	}
+	// private KakaoTokenResponse getAccessToken(ResponseEntity<String> response) throws JsonProcessingException {
+	// 	log.info("accessTokenBody: {}",response.getBody());
+	// 	return objectMapper.readValue(response.getBody(), KakaoTokenResponse.class);
+	// }
 
-	private KakaoInfo requestUserInfo(String token) {
+	@Override
+	public OAuthUserResponse requestOAuthUser(String token) {
 
-		HttpHeaders httpHeaders = new HttpHeaders();
-		httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		httpHeaders.set("Authorization", "Bearer " + token);
+		Map<String, String> header = new HashMap<>();
+		header.put(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + token);
+		HttpEntity request = KakaoRequest.makeRequestEntity(MediaType.APPLICATION_FORM_URLENCODED, header, null);
 
 		// Request entity 생성
-		HttpEntity<?> userInfoEntity = new HttpEntity<>(httpHeaders);
-		ResponseEntity<KakaoInfo> response = restTemplate.postForEntity(userInfoUrl, userInfoEntity, KakaoInfo.class);
+		ResponseEntity<KakaoUserResponse> response = restTemplate.postForEntity(userInfoUrl, request, KakaoUserResponse.class);
 		return response.getBody();
 	}
 
 
 	public void logout(User user) {
-		String accessToken = tokenRepository.findByKey("kakaoAccess;id" + user.getId());
+		Long userId = user.getId();
+		String accessToken = tokenRepository.findByKey(userId + UtilString.KAKAO_ACCESS_TOKEN.value());
 		String logout = "https://kapi.kakao.com/v1/user/logout";
 		int status = validateToken(accessToken);
 		if (status == 401) {
-			String refreshToken = tokenRepository.findByKey("kakaoRefresh;id"+user.getId());
+			String refreshToken = tokenRepository.findByKey(userId + UtilString.KAKAO_REFRESH_TOKEN.value());
 
 			KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
 			accessToken = response.getAccessToken();
 		}
 
-		HttpHeaders header = new HttpHeaders();
-		header.setBearerAuth(accessToken);
-		header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		// HttpHeaders header = new HttpHeaders();
+		// header.setBearerAuth(accessToken);
+		// header.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		//
+		// HttpEntity<?> requestLogout = new HttpEntity<>(header);
+		//
+		// header.set("Authorization", "Bearer " + accessToken);
+		Map<String, String> header = new HashMap<>();
+		header.put(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);
+		HttpEntity request = KakaoRequest.makeRequestEntity(MediaType.APPLICATION_FORM_URLENCODED, header, null);
 
-		HttpEntity<?> requestLogout = new HttpEntity<>(header);
-
-		header.set("Authorization", "Bearer " + accessToken);
-		ResponseEntity<KakaoTokenInfo> response = restTemplate.postForEntity(logout, requestLogout, KakaoTokenInfo.class);
+		ResponseEntity<KakaoTokenInfo> response = restTemplate.postForEntity(logout, request, KakaoTokenInfo.class);
 
 		log.info(response.toString());
-		tokenRepository.deleteByKey("kakaoAccess;id" + user.getId());
-		tokenRepository.deleteByKey("kakaoRefresh;id" + user.getId());
+		tokenRepository.deleteByKey(userId + UtilString.KAKAO_ACCESS_TOKEN.value());
+		tokenRepository.deleteByKey(userId + UtilString.SERVICE_REFRESH_TOKEN.value());
 
 		}
 
 	private int validateToken(String token) {
-		HttpHeaders header = new HttpHeaders();
-		header.set("Authorization", "Bearer " + token);
-		HttpEntity<?> request = new HttpEntity<>(header);
+
+		Map<String, String> addHeader = new HashMap<>();
+		addHeader.put(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + token);
+		HttpEntity request = KakaoRequest.makeRequestEntity(null, addHeader, null);
+
+
 		ResponseEntity<KakaoTokenInfo> response = null;
 		try {
 			String tokenInfoUrl = "https://kapi.kakao.com/v1/user/access_token_info";
+
 			response = restTemplate.exchange(
 				tokenInfoUrl,           // 요청 URL
 				HttpMethod.GET,         // HTTP 메서드
@@ -169,19 +159,13 @@ public class KakaoApiClient {
 	}
 
 	private KakaoTokenResponse requestAccessTokenWithRefreshToken(String refreshToken) {
-		HttpHeaders httpHeaders = new HttpHeaders();
-		httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-
-		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-		body.add("grant_type", "refresh_token");
-		body.add("client_id", clientId);
-		body.add("refresh_token", refreshToken);
-		log.info("get new access Token: {}", body.toString());
+		HttpHeaders header = kakaoRequest.makeHeader(MediaType.APPLICATION_FORM_URLENCODED, null);
+		MultiValueMap<String, String> body = kakaoRequest.makeBody("refresh_token", refreshToken);
 
 
 		// Request entity 생성
-		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, httpHeaders);
+		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, header);
 		ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(tokenUrl, request, KakaoTokenResponse.class);
 		return response.getBody();
 	}
