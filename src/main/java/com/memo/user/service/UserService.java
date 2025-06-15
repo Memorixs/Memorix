@@ -84,27 +84,15 @@ public class UserService {
 	@Transactional
 	public void logout(HttpServletRequest request, User user) {
 		//엑세스토큰으로 요청
-		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
-		String jwt = TokenProvider.resolveToken(token);
+		Long userId = user.getId();
+		String jwt = TokenProvider.resolveToken(request);
 
-		switch(user.getLoginType()) {
-			case NATIVE -> logout(jwt);
-			case KAKAO -> kakaoApiClient.logout(user);
+		if(user.getLoginType() == LoginType.KAKAO) {
+			kakaoApiClient.logout(user);
 		}
-		tokenRepository.deleteByKey("refresh;id" + user.getId());
+		tokenRepository.deleteByKey(userId + UtilString.SERVICE_REFRESH_TOKEN.value());
 		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
-		tokenRepository.save("blackList;id" + user.getId(), token);
-		tokenRepository.deleteByKey("kakaoAccess;id" + user.getId());
-		tokenRepository.deleteByKey("kakaoRefresh;id" + user.getId());
-	}
-
-	@Transactional
-	public void logout(String token) {
-		String stringId = tokenProvider.getClaims(token).getSubject();
-		tokenRepository.deleteByKey("refresh;id" + stringId);
-		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
-		tokenRepository.save("blackList;id" + stringId, token);
-		//리프레시 쿠키 삭제하도록 응답
+		tokenRepository.save(userId + UtilString.BLACKLIST_TOKEN.value(), jwt);
 	}
 
 	public void deleteCookie(HttpServletResponse response) {

@@ -31,6 +31,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -118,6 +119,12 @@ public class TokenProvider {
 			return token.substring(7);
 		}
 		return null;
+	}
+
+	public static String resolveToken(HttpServletRequest request) {
+		String token = request.getHeader(UtilString.AUTHORIZATION.value()); //서비스 토큰
+		String jwt = TokenProvider.resolveToken(token);
+		return jwt;
 	}
 
 	public Claims getClaims(String token) {

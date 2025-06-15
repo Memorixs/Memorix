@@ -45,7 +45,7 @@ public class LogoutController {
 			)
 		}
 	)
-	@PostMapping("/api/logout")
+	@PostMapping("/api/logout") //카카오 로그아웃과 서비스 로그아웃 분리? -> api 늘어남
 	public ResponseEntity<String> logoutKakao(HttpServletRequest request, @AuthenticationPrincipal CustomUserDetails userDetails){
 		User user = userDetails.getUser();
 		userService.logout(request, user);
