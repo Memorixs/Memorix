@@ -2,10 +2,9 @@ package com.memo.user.entity;
 
 import java.time.LocalDateTime;
 
-import com.memo.user.DTO.SignupFormRequestDto;
 import com.memo.user.DTO.UserRequestDto;
-import com.memo.user.oauth.OAuthUser;
-import com.memo.user.oauth.kakao.KakaoInfo;
+import com.memo.user.oauth.OAuthUserResponse;
+import com.memo.user.oauth.kakao.KakaoUserResponse;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -82,12 +81,12 @@ public class User {
 		this.isVerified = isVerified;
 		this.role = role;
 	}
-	public static User from(OAuthUser oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), oAuthUser.getProfileImg(), oAuthUser.getLoginType(), true, Role.USER);
+	public static User from(OAuthUserResponse oAuthUserResponse) {
+		return new User(oAuthUserResponse.getEmail(), oAuthUserResponse.getUsername(), null, oAuthUserResponse.getId(), oAuthUserResponse.getProfileImg(), oAuthUserResponse.getLoginType(), true, Role.USER);
 	}
 
-	public static User from(KakaoInfo oAuthUser) {
-		return new User(oAuthUser.getEmail(), oAuthUser.getNickname(), null, oAuthUser.getId(), null, LoginType.KAKAO, true, Role.USER);
+	public static User from(KakaoUserResponse oAuthUser) {
+		return new User(oAuthUser.getEmail(), oAuthUser.getUsername(), null, oAuthUser.getId(), null, LoginType.KAKAO, true, Role.USER);
 	}
 
 	public static User of(UserRequestDto requestDto, String password) {

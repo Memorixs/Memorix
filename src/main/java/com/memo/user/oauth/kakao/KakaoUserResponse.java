@@ -1,11 +1,13 @@
 package com.memo.user.oauth.kakao;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.memo.user.entity.LoginType;
+import com.memo.user.oauth.OAuthUserResponse;
 
 import lombok.Getter;
 
 @Getter
-public class KakaoUserInfo {
+public class KakaoUserResponse implements OAuthUserResponse {
 	@JsonProperty("kakao_account")
 	private KakaoAccount kakaoAccount;
 	private Long id;
@@ -27,11 +29,22 @@ public class KakaoUserInfo {
 	}
 
 
-	public String getNickName() {
+	public String getUsername() {
 		return kakaoAccount.getProfile().getNickname();
 	}
 
+
 	public String getId() {
 		return String.valueOf(id);
+	}
+
+	@Override
+	public String getProfileImg() {
+		return "";
+	}
+
+	@Override
+	public LoginType getLoginType() {
+		return LoginType.KAKAO;
 	}
 }

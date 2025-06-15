@@ -24,7 +24,6 @@ import com.memo.storage.TokenRepository;
 import com.memo.user.DTO.UserRequestDto;
 import com.memo.user.entity.LoginType;
 import com.memo.user.entity.User;
-import com.memo.user.oauth.CustomOAuthService;
 import com.memo.user.oauth.kakao.KakaoApiClient;
 import com.memo.user.repository.UserRepository;
 
@@ -39,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
-	private final CustomOAuthService customOAuthService;
 	private final TokenProvider tokenProvider;
 	private final KakaoApiClient kakaoApiClient;
 	private final UserRepository userRepository;
@@ -48,7 +46,7 @@ public class UserService {
 	private final TokenRepository tokenRepository;
 
 	public User oAuthLogin(String code, HttpServletResponse response)  {
-		User user = customOAuthService.login(code);
+		User user = kakaoApiClient.login(code);
 		//인증된 객체 넣어주고
 		setAuthentication(user); //굳이? 컨트롤러단에서 실행되는건데?
 		setResponseToken(user, response);

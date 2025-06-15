@@ -2,7 +2,7 @@ package com.memo.user.oauth;
 
 import com.memo.user.entity.LoginType;
 
-public interface OAuthUser {
+public interface OAuthUserResponse {
 	String getEmail();
 	String getUsername();
 	String getId();

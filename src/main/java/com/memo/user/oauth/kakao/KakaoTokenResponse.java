@@ -1,13 +1,14 @@
 package com.memo.user.oauth.kakao;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.memo.user.oauth.TokenResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public class KakaoTokenResponse {
+public class KakaoTokenResponse implements TokenResponse {
 	@JsonProperty("token_type")
 	private String tokenType;
 	@JsonProperty("access_token")
