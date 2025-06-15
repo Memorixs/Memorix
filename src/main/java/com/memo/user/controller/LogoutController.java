@@ -2,9 +2,7 @@ package com.memo.user.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.memo.common.security.CustomUserDetails;
@@ -15,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,7 +43,7 @@ public class LogoutController {
 		}
 	)
 	@PostMapping("/api/logout") //카카오 로그아웃과 서비스 로그아웃 분리? -> api 늘어남
-	public ResponseEntity<String> logoutKakao(HttpServletRequest request, @AuthenticationPrincipal CustomUserDetails userDetails){
+	public ResponseEntity<String> logout(HttpServletRequest request, @AuthenticationPrincipal CustomUserDetails userDetails){
 		User user = userDetails.getUser();
 		userService.logout(request, user);
 		return ResponseEntity.ok().body("ok");
