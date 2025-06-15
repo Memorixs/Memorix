@@ -90,9 +90,9 @@ public class UserService {
 		if(user.getLoginType() == LoginType.KAKAO) {
 			kakaoApiClient.logout(user);
 		}
-		tokenRepository.deleteByKey(userId + UtilString.SERVICE_REFRESH_TOKEN.value());
+		tokenRepository.delete(userId, UtilString.SERVICE_REFRESH_TOKEN.value());
 		//브라우저 토큰 만료 -> 쿠키, 헤더 토큰삭제(프론트 역할), 디비에서 삭제
-		tokenRepository.save(userId + UtilString.BLACKLIST_TOKEN.value(), jwt);
+		tokenRepository.save(userId, UtilString.BLACKLIST_TOKEN.value(), jwt);
 	}
 
 	public void deleteCookie(HttpServletResponse response) {
@@ -133,16 +133,16 @@ public class UserService {
 	}
 
 
-	@Transactional
-	public User verifiedUser(String token) throws MessagingException {
-		//1. 토큰 검증 -> 만료면 다시 메일 보내기, 아니면 인증 성공 후 회원가입 진행
-		User user = signupEmailService.validateEmailToken(token);
-		Optional.ofNullable(user)
-			.orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND_EMAIL, token));
-		//미리 회원을 저장하고 인증이 완료되면 isVerified를 true로 변경
-		user.setIsVerified(true);
-		return user;
-	}
+	// @Transactional
+	// public User verifiedUser(String token) throws MessagingException {
+	// 	//1. 토큰 검증 -> 만료면 다시 메일 보내기, 아니면 인증 성공 후 회원가입 진행
+	// 	User user = signupEmailService.validateEmailToken(token);
+	// 	Optional.ofNullable(user)
+	// 		.orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND_EMAIL, token));
+	// 	//미리 회원을 저장하고 인증이 완료되면 isVerified를 true로 변경
+	// 	user.setIsVerified(true);
+	// 	return user;
+	// }
 
 	public Long login(HttpServletResponse response, UserRequestDto requestDto) {
 		User user = userRepository.findByEmail(requestDto.getEmail())
@@ -184,8 +184,8 @@ public class UserService {
 
 	private void deleteTokenById(Long id, String jwt, HttpServletResponse response) {
 		//블랙리스트에 추가,토큰 비우기, 쿠키
-		tokenRepository.save(id + UtilString.BLACKLIST_TOKEN.value(), jwt);
+		tokenRepository.save(id, UtilString.BLACKLIST_TOKEN.value(), jwt);
 		deleteCookie(response);
-		tokenRepository.deleteByKey(id + UtilString.SERVICE_REFRESH_TOKEN.value());
+		tokenRepository.delete(id, UtilString.SERVICE_REFRESH_TOKEN.value());
 	}
 }

@@ -17,14 +17,14 @@ public class TokenRepository {
 		redisTemplate.opsForValue().set(key, value, timeout, unit);
 	}
 
-	public void save(String key, String value) {
-		redisTemplate.opsForValue().set(UtilString.TOKEN_IDENTIFIER.value()+key, value);
+	public void save(Long userId, String kindOfToken, String value) {
+		redisTemplate.opsForValue().set(UtilString.TOKEN_IDENTIFIER.value() + userId + kindOfToken, value);
 	}
-	public String findByKey(String key) {
-		return redisTemplate.opsForValue().get(UtilString.TOKEN_IDENTIFIER.value()+key);
+	public String find(Long userId, String kindOfToken) {
+		return redisTemplate.opsForValue().get(UtilString.TOKEN_IDENTIFIER.value() + userId + kindOfToken);
 	}
-	public void deleteByKey(String key) {
-		redisTemplate.opsForValue().getAndDelete(UtilString.TOKEN_IDENTIFIER.value()+key);
+	public void delete(Long userId, String kindOfToken) {
+		redisTemplate.opsForValue().getAndDelete(UtilString.TOKEN_IDENTIFIER.value() + userId + kindOfToken);
 	}
 
 }

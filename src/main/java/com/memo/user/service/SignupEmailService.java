@@ -38,26 +38,26 @@ public class SignupEmailService implements EmailService {
 		helper.setText(text, true);
 	}
 
-	public void sendVerifiedMessage(String email) throws MessagingException {
-		MimeMessage message = emailSender.createMimeMessage();
+	// public void sendVerifiedMessage(String email) throws MessagingException {
+	// 	MimeMessage message = emailSender.createMimeMessage();
+	//
+	// 	//토큰 말고 이메일 레디스에 저장해서 만료시간 설정
+	// 	String verificationLink = EmailUtils.createVerificationLink(email);
+	// 	String text = EmailUtils.createMessageForSignup(verificationLink);
+	// 	String sub = EmailUtils.createSubForSignup(email);
+	//
+	// 	createMessage(message, email, sub, text);
+	// 	tokenRepository.save("email;" + email, email, 5, TimeUnit.MINUTES);
+	// 	emailSender.send(message);
+	// }
 
-		//토큰 말고 이메일 레디스에 저장해서 만료시간 설정
-		String verificationLink = EmailUtils.createVerificationLink(email);
-		String text = EmailUtils.createMessageForSignup(verificationLink);
-		String sub = EmailUtils.createSubForSignup(email);
-
-		createMessage(message, email, sub, text);
-		tokenRepository.save("email;" + email, email, 5, TimeUnit.MINUTES);
-		emailSender.send(message);
-	}
-
-	public User validateEmailToken(String token) {
-		if (tokenRepository.findByKey("email;"+token) == null) {
-			throw new CustomException(ExceptionType.EXPIRED_LINK); //프론트가 링크 재요청 페이지 띄우고 백엔드에 다시 요청, 메일 날리는 api따로 만들기
-		}
-		//만료되지 않았다면
-		//user 반환
-		mailLinkTokenStore.deleteByEmail(token);
-		return userRepository.findByEmailEquals(token);
-	}
+	// public User validateEmailToken(String token) {
+	// 	if (tokenRepository.find("email;"+token) == null) {
+	// 		throw new CustomException(ExceptionType.EXPIRED_LINK); //프론트가 링크 재요청 페이지 띄우고 백엔드에 다시 요청, 메일 날리는 api따로 만들기
+	// 	}
+	// 	//만료되지 않았다면
+	// 	//user 반환
+	// 	mailLinkTokenStore.deleteByEmail(token);
+	// 	return userRepository.findByEmailEquals(token);
+	// }
 }

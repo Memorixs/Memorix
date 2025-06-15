@@ -102,11 +102,11 @@ public class KakaoApiClient implements OAuthApiClient {
 
 	public void logout(User user) {
 		Long userId = user.getId();
-		String accessToken = tokenRepository.findByKey(userId + UtilString.KAKAO_ACCESS_TOKEN.value());
+		String accessToken = tokenRepository.find(userId, UtilString.KAKAO_ACCESS_TOKEN.value());
 		String logout = "https://kapi.kakao.com/v1/user/logout";
 		int status = validateToken(accessToken);
 		if (status == 401) {
-			String refreshToken = tokenRepository.findByKey(userId + UtilString.KAKAO_REFRESH_TOKEN.value());
+			String refreshToken = tokenRepository.find(userId, UtilString.KAKAO_REFRESH_TOKEN.value());
 
 			KakaoTokenResponse response = requestAccessTokenWithRefreshToken(refreshToken);
 			accessToken = response.getAccessToken();
@@ -126,8 +126,8 @@ public class KakaoApiClient implements OAuthApiClient {
 		ResponseEntity<KakaoTokenInfo> response = restTemplate.postForEntity(logout, request, KakaoTokenInfo.class);
 
 		log.info(response.toString());
-		tokenRepository.deleteByKey(userId + UtilString.KAKAO_ACCESS_TOKEN.value());
-		tokenRepository.deleteByKey(userId + UtilString.SERVICE_REFRESH_TOKEN.value());
+		tokenRepository.delete(userId, UtilString.KAKAO_ACCESS_TOKEN.value());
+		tokenRepository.delete(userId, UtilString.SERVICE_REFRESH_TOKEN.value());
 
 		}
 

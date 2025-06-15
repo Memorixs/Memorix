@@ -75,55 +75,55 @@ public class SignupController {
 		return ResponseEntity.ok().body(user);
 	}
 
-	@Operation(
-		summary = "이메일 인증",
-		description = "사용자가 만료된 이메일 링크를 클릭했을 때 호출",
-		parameters = {
-			@Parameter(
-				name = "email",
-				description = "인증 링크 보낼 이메일",
-				required = true,
-				in = ParameterIn.QUERY,
-				content = @Content(
-					mediaType = "application/json",
-					schema = @Schema(implementation = User.class)
-				)
-			)
-		},
-		responses = {
-			@ApiResponse(
-				responseCode = "200",
-				description = "성공",
-				content = @Content(
-					mediaType = "application/json",
-					schema = @Schema(implementation = User.class)
-				)
-			),
-			@ApiResponse(
-				responseCode = "400",
-				description = "실패",
-				content = @Content(
-					examples = @ExampleObject(
-						value = "실패하였습니다."
-					)
-				)
-			),
-			@ApiResponse(
-				responseCode = "500",
-				description = "서버 오류",
-				content = @Content(
-				examples = @ExampleObject(
-					value = "실패하였습니다."
-				)
-			)
-			)
-		}
-	)
-	//이메일 인증 -> 리다이렉트
-	@GetMapping("/api/auth/confirm")
-	public ResponseEntity<User> confirmEmail(@RequestParam String email) throws MessagingException {
-		//토큰 검증(만료되었는지 아닌지, 만료되면 재전송
-		User user = userService.verifiedUser(email);
-		return ResponseEntity.ok().body(user);
-	}
+	// @Operation(
+	// 	summary = "이메일 인증",
+	// 	description = "사용자가 만료된 이메일 링크를 클릭했을 때 호출",
+	// 	parameters = {
+	// 		@Parameter(
+	// 			name = "email",
+	// 			description = "인증 링크 보낼 이메일",
+	// 			required = true,
+	// 			in = ParameterIn.QUERY,
+	// 			content = @Content(
+	// 				mediaType = "application/json",
+	// 				schema = @Schema(implementation = User.class)
+	// 			)
+	// 		)
+	// 	},
+	// 	responses = {
+	// 		@ApiResponse(
+	// 			responseCode = "200",
+	// 			description = "성공",
+	// 			content = @Content(
+	// 				mediaType = "application/json",
+	// 				schema = @Schema(implementation = User.class)
+	// 			)
+	// 		),
+	// 		@ApiResponse(
+	// 			responseCode = "400",
+	// 			description = "실패",
+	// 			content = @Content(
+	// 				examples = @ExampleObject(
+	// 					value = "실패하였습니다."
+	// 				)
+	// 			)
+	// 		),
+	// 		@ApiResponse(
+	// 			responseCode = "500",
+	// 			description = "서버 오류",
+	// 			content = @Content(
+	// 			examples = @ExampleObject(
+	// 				value = "실패하였습니다."
+	// 			)
+	// 		)
+	// 		)
+	// 	}
+	// )
+	// //이메일 인증 -> 리다이렉트
+	// @GetMapping("/api/auth/confirm")
+	// public ResponseEntity<User> confirmEmail(@RequestParam String email) throws MessagingException {
+	// 	//토큰 검증(만료되었는지 아닌지, 만료되면 재전송
+	// 	User user = userService.verifiedUser(email);
+	// 	return ResponseEntity.ok().body(user);
+	// }
 }
