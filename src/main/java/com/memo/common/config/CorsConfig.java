@@ -17,6 +17,7 @@ public class CorsConfig {
 		source.registerCorsConfiguration("/**", configuration);
 		configuration.setAllowedHeaders(Arrays.asList("*")); // 허용할 헤더
 		configuration.setAllowCredentials(true); // 자격 증명 포함 여부 (예: 쿠키)
+		configuration.addExposedHeader("Authorization");
 		return source;
 	}
 }

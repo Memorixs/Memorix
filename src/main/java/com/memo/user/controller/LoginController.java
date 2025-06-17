@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @Slf4j
 @RequiredArgsConstructor
+@RequestMapping("/api")
 public class LoginController {
 
 	private final KakaoApiClient kakaoApiClient;
@@ -119,7 +121,7 @@ public class LoginController {
 			)
 		}
 	)
-	@PostMapping("/api/login")
+	@PostMapping("/login")
 	public ResponseEntity<Long> login(HttpServletResponse response, @RequestBody LoginRequestDto requestDto) {
 		Long id = userService.login(response, requestDto);
 		return ResponseEntity.ok().body(id);
