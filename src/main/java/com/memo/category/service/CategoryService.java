@@ -13,7 +13,7 @@ import com.memo.category.entity.Category;
 import com.memo.category.repository.CategoryRepository;
 import com.memo.common.exception.CustomException;
 import com.memo.common.exception.ExceptionType;
-import com.memo.note.service.NoteService;
+import com.memo.quiz.service.QuizService;
 import com.memo.user.entity.User;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CategoryService {
 	private final CategoryRepository categoryRepository;
-	private final NoteService noteService;
+	private final QuizService quizService;
 
 
 	public ListResponse<CategoryResponse> findByUser(User user) {
@@ -69,7 +69,7 @@ public class CategoryService {
 		log.info(category.getUser().getClass().toString());
 		//soft delete
 		category.delete();
-		noteService.deleteByCategory(category);
+		quizService.deleteByCategory(category);
 
 		//카테고리가 삭제되면 학습자료도 삭제되는가? -> 미분류 카테고리로 이동
 	}

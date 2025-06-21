@@ -36,7 +36,7 @@ public class Category implements Resource {
 	private User user;
 
 	// @OneToMany(mappedBy = "category")
-	// private List<Note> notes = new ArrayList<>();
+	// private List<Quiz> notes = new ArrayList<>();
 
 	public static CategoryResponse entityToDto(Category entity) {
 		return new CategoryResponse(entity.getId(), entity.getName());

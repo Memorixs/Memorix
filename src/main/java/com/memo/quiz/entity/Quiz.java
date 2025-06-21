@@ -1,4 +1,4 @@
-package com.memo.note.entity;
+package com.memo.quiz.entity;
 
 import java.time.LocalDateTime;
 
@@ -18,12 +18,12 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor
 @Getter
-public class Note implements Resource {
+public class Quiz implements Resource {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private String title;
-	private String content;
+	private String question;
+	private String answer;
 	private boolean isBookmarked;
 	private boolean know;
 	private LocalDateTime createdAt;
