@@ -14,4 +14,5 @@ abstract public class QuizDto {
 	private String answer;
 	private String reference;
 	private Status status;
+	private String category;
 }

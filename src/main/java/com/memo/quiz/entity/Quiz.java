@@ -33,4 +33,6 @@ public class Quiz implements Resource {
 	private User user;
 	@ManyToOne(fetch = FetchType.LAZY)
 	private Category category;
+	private String reference;
+	private Status status;
 }

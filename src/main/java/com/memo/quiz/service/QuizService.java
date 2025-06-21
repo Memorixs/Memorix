@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.memo.category.entity.Category;
+import com.memo.category.repository.CategoryRepository;
 import com.memo.quiz.DTO.CreateQuizRequestDto;
 import com.memo.quiz.DTO.ModifiedQuizRequestDto;
 import com.memo.quiz.DTO.QuizDto;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class QuizService {
 	private final QuizRepository quizRepository;
+	private final CategoryRepository categoryRepository;
 
 	public void deleteByCategory(Category category) {
 		quizRepository.deleteByCategory(category);
@@ -35,7 +37,7 @@ public class QuizService {
 		return List.of();
 	}
 
-	public QuizDto update(ModifiedQuizRequestDto notes) {
+	public QuizDto update(Long id, ModifiedQuizRequestDto notes) {
 		return null;
 	}
 
