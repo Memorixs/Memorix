@@ -6,16 +6,19 @@ import lombok.Getter;
 
 @Getter
 public class CustomException extends RuntimeException{
+	private ExceptionType exception;
 	private String message;
 	private  HttpStatus status;
 	private int code;
 
 	public CustomException(ExceptionType exception, Object value) {
+		this.exception = exception;
 		this.message = exception.getMessage() + value.toString();
 		this.status = exception.getStatus();
 	}
 
 	public CustomException(ExceptionType exceptionType) {
+		this.exception = exceptionType;
 		this.message = exceptionType.getMessage();
 		this.status = exceptionType.getStatus();
 	}
@@ -25,5 +28,4 @@ public class CustomException extends RuntimeException{
 		this.status = exceptionType.getStatus();
 		this.code = exceptionType.getCode();
 	}
-
 }

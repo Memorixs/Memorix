@@ -2,16 +2,23 @@ package com.memo.quiz.DTO;
 
 import com.memo.quiz.entity.Status;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
-public class QuizResponseDto extends QuizDto {
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class QuizResponseDto {
+	private Long id;
+	private String question;
+	private String answer;
+	private String reference;
+	private Status status;
+	private String category;
 	private boolean isBookmarked;
-	private boolean know;
-
-	public QuizResponseDto(String title, String content, String ref, Status status, boolean isBookmarked, boolean know) {
-		super(title, content, ref, status);
-		this.isBookmarked = isBookmarked;
-		this.know = know;
-	}
+	private Long userId;
 }

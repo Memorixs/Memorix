@@ -14,4 +14,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 	@Modifying
 	@Query("update Quiz q set q.isDeleted = true where q.category = :category")
 	void deleteByCategory(Category category);
+
+	Quiz findByQuestion(String question);
 }

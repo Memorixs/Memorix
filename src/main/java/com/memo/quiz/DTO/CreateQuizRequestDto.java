@@ -1,10 +1,18 @@
 package com.memo.quiz.DTO;
 
+import com.memo.category.entity.Category;
 import com.memo.quiz.entity.Status;
 
-public class CreateQuizRequestDto extends QuizDto {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-	public CreateQuizRequestDto(String question, String answer, String reference, Status status) {
-		super(question, answer, reference, status);
-	}
+@AllArgsConstructor
+@Getter
+public class CreateQuizRequestDto {
+	private String question;
+	private String answer;
+	private String reference;
+	private Status status;
+	private String category;
+
 }
