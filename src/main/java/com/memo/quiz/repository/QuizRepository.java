@@ -22,4 +22,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 	Quiz findByIdAndIsDeletedFalse(Long id);
 
 	List<Quiz> findByCategoryIdAndUserIdIsDeletedFalse(Long categoryId, Long userId);
+
+	List<Quiz> findByUserIdAndIsDeletedFalse(Long userId);
 }

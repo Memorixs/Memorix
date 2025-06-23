@@ -86,6 +86,9 @@ public class QuizService {
 	}
 
 	public List<QuizResponseDto> findByCategoryId(Long categoryId, User user, SortType type) {
+		if(user.getIsDeleted()) {
+			throw new CustomException(ExceptionType.NOT_FOUND_USER);
+		}
 		List<Quiz> results = quizRepository.findByCategoryIdAndUserIdIsDeletedFalse(categoryId, user.getId());
 		List<Quiz> deletedCategory = results.stream().filter((result) -> result.getCategory().getIsDeleted()).toList();
 		if(!deletedCategory.isEmpty()) {
@@ -106,6 +109,16 @@ public class QuizService {
 				.sorted(Comparator.comparing(QuizResponseDto::getQuestion, Collator.getInstance(Locale.KOREA))).toList();
 		};
 		return result;
+	}
+
+	public List<QuizResponseDto> findByUser(User user, SortType type) {
+		if(user.getIsDeleted()) {
+			throw new CustomException(ExceptionType.NOT_FOUND_USER);
+		}
+		List<Quiz> results = quizRepository.findByUserIdAndIsDeletedFalse(user.getId());
+		List<QuizResponseDto> response = Quiz.entityToDto(results);
+		List<QuizResponseDto> sortedResponse =  sortByType(response, type);
+		return sortedResponse;
 	}
 
 }
