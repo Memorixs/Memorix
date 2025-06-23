@@ -1,9 +1,11 @@
 package com.memo.quiz.entity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.memo.Resource;
 import com.memo.category.entity.Category;
+import com.memo.common.enums.SortType;
 import com.memo.quiz.DTO.CreateQuizRequestDto;
 import com.memo.quiz.DTO.QuizResponseDto;
 import com.memo.user.entity.User;
@@ -67,7 +69,13 @@ public class Quiz implements Resource {
 			.id(entity.getId())
 			.category(entity.getCategory().getName())
 			.userId(entity.getUser().getId())
+			.createdAt(entity.getCreatedAt())
 			.build();
+	}
+
+	public static List<QuizResponseDto> entityToDto(List<Quiz> results) {
+		List<QuizResponseDto> result = results.stream().map(Quiz::entityToDto).toList();
+		return result;
 	}
 
 	public void delete() {

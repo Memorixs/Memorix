@@ -20,7 +20,8 @@ public enum ExceptionType {
 	LOGOUT_USER("로그아웃된 회원입니다.", HttpStatus.BAD_REQUEST),
 	DUPLICATED_QUESTION("이미 존재하는 자료입니다. question: ", HttpStatus.BAD_REQUEST),
 	NOT_FOUND_QUIZ("존재하지 않는 퀴즈입니다. quizId: ", HttpStatus.BAD_REQUEST),
-	UNAUTHORIZED("권한이 없는 잘못된 요청입니다.", HttpStatus.FORBIDDEN);
+	UNAUTHORIZED("권한이 없는 잘못된 요청입니다.", HttpStatus.FORBIDDEN),
+	IS_DELETED_RESOURCE("삭제된 자원에 대한 접근입니다.", HttpStatus.BAD_REQUEST);
 	private String message;
 	private HttpStatus status;
 }

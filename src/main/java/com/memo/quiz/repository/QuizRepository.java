@@ -1,5 +1,7 @@
 package com.memo.quiz.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,4 +20,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 	Quiz findByQuestion(String question);
 
 	Quiz findByIdAndIsDeletedFalse(Long id);
+
+	List<Quiz> findByCategoryIdAndUserIdIsDeletedFalse(Long categoryId, Long userId);
 }

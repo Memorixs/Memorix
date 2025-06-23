@@ -1,5 +1,8 @@
 package com.memo.quiz.DTO;
 
+import java.time.LocalDateTime;
+
+import com.memo.quiz.entity.Quiz;
 import com.memo.quiz.entity.Status;
 
 import lombok.AllArgsConstructor;
@@ -21,4 +24,7 @@ public class QuizResponseDto {
 	private String category;
 	private boolean isBookmarked;
 	private Long userId;
+	private LocalDateTime createdAt;
+	private LocalDateTime updatedAt;
+
 }

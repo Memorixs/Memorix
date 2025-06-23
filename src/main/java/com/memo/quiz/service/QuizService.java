@@ -1,6 +1,12 @@
 package com.memo.quiz.service;
 
+import static com.memo.common.enums.SortType.*;
+
+import java.text.Collator;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -8,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.memo.category.entity.Category;
 import com.memo.category.repository.CategoryRepository;
+import com.memo.common.enums.SortType;
 import com.memo.common.exception.CustomException;
 import com.memo.common.exception.ExceptionType;
 import com.memo.quiz.DTO.CreateQuizRequestDto;
@@ -19,6 +26,7 @@ import com.memo.quiz.entity.Status;
 import com.memo.quiz.repository.QuizRepository;
 import com.memo.user.entity.User;
 
+import io.lettuce.core.GeoArgs;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -77,7 +85,27 @@ public class QuizService {
 		result.delete();
 	}
 
-	public List<QuizDto> findByCategoryId(Long categoryId) {
-		return List.of();
+	public List<QuizResponseDto> findByCategoryId(Long categoryId, User user, SortType type) {
+		List<Quiz> results = quizRepository.findByCategoryIdAndUserIdIsDeletedFalse(categoryId, user.getId());
+		List<Quiz> deletedCategory = results.stream().filter((result) -> result.getCategory().getIsDeleted()).toList();
+		if(!deletedCategory.isEmpty()) {
+			throw new CustomException(ExceptionType.IS_DELETED_RESOURCE);
+		}
+		List<QuizResponseDto> response = Quiz.entityToDto(results);
+		List<QuizResponseDto> sortedResponse =  sortByType(response, type);
+
+		return sortedResponse;
 	}
+
+	private List<QuizResponseDto> sortByType(List<QuizResponseDto> list, SortType type) {
+		List<QuizResponseDto> result = switch (type) {
+			case CREATED_AT_ASC -> list.stream().sorted(Comparator.comparing(QuizResponseDto::getCreatedAt)).toList();
+			case CREATED_AT_DESC -> list.stream().sorted(Comparator.comparing(QuizResponseDto::getCreatedAt).reversed()).toList();
+			case EN_ASC -> list.stream().sorted(Comparator.comparing(QuizResponseDto::getQuestion)).toList();
+			case KO_ASC -> list.stream()
+				.sorted(Comparator.comparing(QuizResponseDto::getQuestion, Collator.getInstance(Locale.KOREA))).toList();
+		};
+		return result;
+	}
+
 }
