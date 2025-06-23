@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.memo.category.dto.ListResponse;
 import com.memo.category.entity.Category;
 import com.memo.category.repository.CategoryRepository;
 import com.memo.common.enums.SortType;
@@ -19,6 +20,7 @@ import com.memo.common.exception.CustomException;
 import com.memo.common.exception.ExceptionType;
 import com.memo.quiz.DTO.CreateQuizRequestDto;
 import com.memo.quiz.DTO.ModifiedQuizRequestDto;
+import com.memo.quiz.DTO.QuizByCategoryResponseDto;
 import com.memo.quiz.DTO.QuizDto;
 import com.memo.quiz.DTO.QuizResponseDto;
 import com.memo.quiz.entity.Quiz;
@@ -111,14 +113,23 @@ public class QuizService {
 		return result;
 	}
 
-	public List<QuizResponseDto> findByUser(User user, SortType type) {
+	public ListResponse<QuizByCategoryResponseDto> findByUser(User user, SortType type) {
+		//모든 자료 조회시 카테고리별로 반환하는게 가독성에 좋음
 		if(user.getIsDeleted()) {
 			throw new CustomException(ExceptionType.NOT_FOUND_USER);
 		}
-		List<Quiz> results = quizRepository.findByUserIdAndIsDeletedFalse(user.getId());
-		List<QuizResponseDto> response = Quiz.entityToDto(results);
-		List<QuizResponseDto> sortedResponse =  sortByType(response, type);
-		return sortedResponse;
+		List<Category> categories = categoryRepository.findByUserIdAndIsDeletedFalse(user.getId());
+
+		ListResponse<QuizByCategoryResponseDto> response = new ListResponse<>();
+		for(Category category : categories) {
+			List<QuizResponseDto> quizDto = Quiz.entityToDto(category.getQuizzes());
+			List<QuizResponseDto> sortedQuizDto = sortByType(quizDto, type);
+			QuizByCategoryResponseDto result =  Category.createQuizByCategory(category);
+			result.setQuizzes(sortedQuizDto);
+			response.getResponse().add(result);
+		}
+
+		return response;
 	}
 
 }

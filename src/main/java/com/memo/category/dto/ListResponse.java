@@ -1,5 +1,6 @@
 package com.memo.category.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -11,5 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ListResponse<T extends Response> {
 	private int total;
-	private List<T> response;
+	private List<T> response = new ArrayList<>();
+
 }

@@ -1,10 +1,13 @@
 package com.memo.category.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.memo.Resource;
 import com.memo.category.dto.CategoryResponse;
+import com.memo.quiz.DTO.QuizByCategoryResponseDto;
+import com.memo.quiz.entity.Quiz;
 import com.memo.user.entity.User;
 
 import jakarta.persistence.Column;
@@ -15,6 +18,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -35,8 +39,8 @@ public class Category implements Resource {
 	@JoinColumn(name = "user_id")
 	private User user;
 
-	// @OneToMany(mappedBy = "category")
-	// private List<Quiz> notes = new ArrayList<>();
+	@OneToMany(mappedBy = "category")
+	private List<Quiz> quizzes = new ArrayList<>();
 
 	public static CategoryResponse entityToDto(Category entity) {
 		return new CategoryResponse(entity.getId(), entity.getName());
@@ -67,5 +71,9 @@ public class Category implements Resource {
 	public void delete() {
 		this.isDeleted = true;
 		// this.notes = this.notes.stream().map(note -> note.deleteCategory()).toList();
+	}
+
+	public static QuizByCategoryResponseDto createQuizByCategory(Category category) {
+		return new QuizByCategoryResponseDto(category.getQuizzes().size(), category.getName());
 	}
 }
