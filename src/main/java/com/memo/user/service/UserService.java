@@ -56,7 +56,7 @@ public class UserService {
 		// 토큰 발급해주기,
 		String accessToken = tokenProvider.createAccessToken(user.getRole().name(), user.getId());
 		String refreshToken = tokenProvider.createRefreshToken(user.getRole().name(), user.getId());
-		tokenRepository.save("refresh;id" + user.getId(), refreshToken, 7, TimeUnit.DAYS);//3600:1시간
+		tokenRepository.save(user.getId(), UtilString.SERVICE_REFRESH_TOKEN.value(), refreshToken,  7, TimeUnit.DAYS);//3600:1시간
 
 		//토큰 header에 넣어주기
 		response.setHeader(UtilString.AUTHORIZATION.value(), UtilString.BEARER.value() + accessToken);

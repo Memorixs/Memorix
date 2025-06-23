@@ -58,8 +58,8 @@ public class KakaoApiClient implements OAuthApiClient {
 	public User login(String code){
 		TokenResponse response = requestAccessToken(code);
 		User user = createUser(response);
-		tokenRepository.save("kakaoAccess;id" + user.getId(), response.getAccessToken(), response.getExpiresIn(), TimeUnit.SECONDS);
-		tokenRepository.save("kakaoRefresh;id" + user.getId(), response.getRefreshToken(), response.getRefreshTokenExpiresIn(), TimeUnit.SECONDS);
+		tokenRepository.save(user.getId(), UtilString.KAKAO_ACCESS_TOKEN.value(), response.getAccessToken(), response.getExpiresIn(), TimeUnit.SECONDS);
+		tokenRepository.save(user.getId(), UtilString.KAKAO_REFRESH_TOKEN.value(), response.getRefreshToken(), response.getRefreshTokenExpiresIn(), TimeUnit.SECONDS);
 		return user;
 	}
 
