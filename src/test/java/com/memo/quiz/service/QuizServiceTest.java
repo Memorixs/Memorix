@@ -50,7 +50,6 @@ class QuizServiceTest {
 	@Mock
 	Quiz found;
 
-	@Mock
 	User user;
 
 	ModifiedQuizRequestDto modifiedRequest;
@@ -64,6 +63,7 @@ class QuizServiceTest {
 	public void init() {
 		quiz = new CreateQuizRequestDto(question, answer, ref, status, categoryStr);
 		modifiedRequest = new ModifiedQuizRequestDto("newTitle", "newContent", "ref","changeCategory", Status.KNOWN);
+		user = new User();
 		ReflectionTestUtils.setField(user, "id", 1L);
 		// doReturn("category").when(category).getName();
 
@@ -109,8 +109,6 @@ class QuizServiceTest {
 		//dto로 들어온 값이 entity로 잘 저장이 되었는지
 		//given
 		// doReturn(1L).when(user).getId();
-		User user = new User();
-		ReflectionTestUtils.setField(user, "id", 1L);
 
 		Category category = Category.createByUser(categoryStr, user);
 		doReturn(null).when(quizRepository).findByQuestion(quiz.getQuestion());
@@ -152,19 +150,49 @@ class QuizServiceTest {
 	}
 
 	@Nested
-	@DisplayName("id로 자료 삭제하기")
+	@DisplayName("존재하지 않는 자료 삭제 시도로 실패")
+	@Test
+	void notFoundDeleteFailed() {
+		//given
+		doReturn(null).when(quizRepository).findByIdAndIsDeletedFalse(anyLong());
+		//when
+		final CustomException result = assertThrows(CustomException.class, () -> quizService.deleteById(1L, user));
+		//then
+		assertThat(result.getException()).isEqualTo(ExceptionType.NOT_FOUND_QUIZ);
+		//verify
+		verify(quizRepository, times(1)).findByIdAndIsDeletedFalse(anyLong());
+	}
+
+	@Nested
+	@DisplayName("권한이 없는 사용자가 삭제 시도로 인해 실패")
+	@Test
+	void noAuthDeleteFailed() {
+		//given
+		doReturn(quiz(user)).when(quizRepository).findByIdAndIsDeletedFalse(anyLong());
+
+		User forbiddenUser = new User();
+		ReflectionTestUtils.setField(forbiddenUser, "id", 2L);
+		//when
+		final CustomException result = assertThrows(CustomException.class, () -> quizService.deleteById(1L, forbiddenUser));
+		//then
+		assertThat(result.getException()).isEqualTo(ExceptionType.UNAUTHORIZED);
+		verify(quizRepository, times(1)).findByIdAndIsDeletedFalse(anyLong());
+	}
+
+	@Nested
+	@DisplayName("id로 자료 삭제 성공")
 	@Test
 	void deleteById() {
 		//학습자료는 softdelete
 		//given
-		ReflectionTestUtils.setField(found, "id", 1L);
-		ReflectionTestUtils.setField(found, "isDeleted", false);
-		given(quizRepository.findById(any(Long.class))).willReturn(Optional.of(found));
+		Quiz found= quiz(user);
+		doReturn(found).when(quizRepository).findByIdAndIsDeletedFalse(found.getId());
 		// deleteById(id)는 void 메서드이고, Mockito에서는 기본적으로 void 메서드는 아무 동작도 하지 않는 것처럼 동작합니다.
-		Long id = 1L;
 		//when
-		quizService.deleteById(id);
+		quizService.deleteById(found.getId(), user);
 		//then
+		assertTrue(found.isDeleted());
+		verify(quizRepository, times(1)).findByIdAndIsDeletedFalse(anyLong());
 
 		// assertAll(
 			// () -> verify(quizRepository.findById(any(Long.class)));
