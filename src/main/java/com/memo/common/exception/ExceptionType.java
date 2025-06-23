@@ -18,7 +18,9 @@ public enum ExceptionType {
 	NOT_FOUND_USER("가입된 정보가 없습니다.", HttpStatus.BAD_REQUEST),
 	NOT_VERIFIED_USER("검증되지 않은 사용자입니다. verified: ", HttpStatus.BAD_REQUEST),
 	LOGOUT_USER("로그아웃된 회원입니다.", HttpStatus.BAD_REQUEST),
-	DUPLICATED_QUESTION("이미 존재하는 자료입니다. question: ", HttpStatus.BAD_REQUEST);
+	DUPLICATED_QUESTION("이미 존재하는 자료입니다. question: ", HttpStatus.BAD_REQUEST),
+	NOT_FOUND_QUIZ("존재하지 않는 퀴즈입니다. quizId: ", HttpStatus.BAD_REQUEST),
+	UNAUTHORIZED("권한이 없는 잘못된 요청입니다.", HttpStatus.FORBIDDEN);
 	private String message;
 	private HttpStatus status;
 }

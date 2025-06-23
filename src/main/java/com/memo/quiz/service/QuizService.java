@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.memo.category.entity.Category;
 import com.memo.category.repository.CategoryRepository;
@@ -34,6 +35,7 @@ public class QuizService {
 		return List.of();
 	}
 
+	@Transactional
 	public QuizResponseDto save(User user, CreateQuizRequestDto quiz) {
 		Quiz result = quizRepository.findByQuestion(quiz.getQuestion());
 		if (result != null) {
@@ -65,8 +67,14 @@ public class QuizService {
 		return null;
 	}
 
-	public void deleteById(Long id) {
-
+	@Transactional
+	public void deleteById(Long id, User user) {
+		Quiz result = quizRepository.findByIdAndIsDeletedFalse(id);
+		Optional.ofNullable(result).orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND_QUIZ, id));
+		if (!result.getUser().getId().equals(user.getId())) {
+			throw new CustomException(ExceptionType.UNAUTHORIZED);
+		}
+		result.delete();
 	}
 
 	public List<QuizDto> findByCategoryId(Long categoryId) {

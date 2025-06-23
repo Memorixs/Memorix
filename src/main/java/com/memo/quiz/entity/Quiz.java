@@ -70,4 +70,7 @@ public class Quiz implements Resource {
 			.build();
 	}
 
+	public void delete() {
+		this.isDeleted = true;
+	}
 }

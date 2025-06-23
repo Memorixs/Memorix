@@ -16,4 +16,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 	void deleteByCategory(Category category);
 
 	Quiz findByQuestion(String question);
+
+	Quiz findByIdAndIsDeletedFalse(Long id);
 }
