@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnNotWarDeployment;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.memo.category.entity.Category;
@@ -76,6 +77,7 @@ class QuizServiceTest {
 		modifiedRequest = new ModifiedQuizRequestDto("newTitle", "newContent", "ref","changeCategory", Status.KNOWN);
 		user = new User();
 		ReflectionTestUtils.setField(user, "id", 1L);
+		ReflectionTestUtils.setField(user, "isDeleted", false);
 		// doReturn("category").when(category).getName();
 
 		category = new Category();
@@ -259,6 +261,21 @@ class QuizServiceTest {
 		verify(quizRepository, times(1)).findByCategoryIdAndUserIdIsDeletedFalse(category.getId(), category.getUser().getId());
 	}
 
+	@Nested
+	@DisplayName("카테고리별 조회에서 삭제된 회원이 조회한 경우 실패")
+	@Test
+	void findByCategoryFailed() {
+		//given
+		User deletedUser = new User();
+		ReflectionTestUtils.setField(deletedUser, "isDeleted", true);
+		ReflectionTestUtils.setField(deletedUser, "id", 1L);
+
+		//when
+		final CustomException result = assertThrows(CustomException.class, () -> quizService.findByCategoryId(category.getId(), deletedUser, SortType.KO_ASC));
+		//then
+		assertThat(result.getException()).isEqualTo(ExceptionType.NOT_FOUND_USER);
+	}
+
 
 	@Nested
 	@DisplayName("카테고리 id 별로 정렬(최신순) 자료 조회 성공")
@@ -370,4 +387,113 @@ class QuizServiceTest {
 	void updateCategoryById() {
 
 	}
+
+	@Nested
+	@DisplayName("삭제된 회원이 조회한 경우")
+	@Test
+	void findByUserIdFailed() {
+		//given
+		User deletedUser = new User();
+		ReflectionTestUtils.setField(deletedUser, "isDeleted", true);
+		ReflectionTestUtils.setField(deletedUser, "id", 1L);
+
+		//when
+		final CustomException result = assertThrows(CustomException.class, () -> quizService.findByUser(deletedUser, SortType.CREATED_AT_DESC));
+		//then
+		assertThat(result.getException()).isEqualTo(ExceptionType.NOT_FOUND_USER);
+	}
+
+	@Nested
+	@DisplayName("유저가 등록한 모든 자료 조회 성공(최신순으로 정렬)")
+	@Test
+	void findByUser() {
+		//given
+		SortType type = SortType.CREATED_AT_DESC;
+		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		//when
+		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		//then
+		//최신순으로 정렬되었는지 확인
+		List<LocalDateTime> timestamps = results.stream()
+			.map(QuizResponseDto::getCreatedAt)
+			.collect(Collectors.toList());
+
+		List<LocalDateTime> sorted = new ArrayList<>(timestamps);
+		sorted.sort(Comparator.reverseOrder());
+
+		assertThat(timestamps).isEqualTo(sorted);
+		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+	}
+
+	@Nested
+	@DisplayName("카테고리 id 별로 정렬(오래된순) 자료 조회 성공")
+	@Test
+	void findAllByUserCreatedAtAsc() {
+		//given
+		SortType type = SortType.CREATED_AT_ASC;
+		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		//when
+		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		//then
+		//최신순으로 정렬되었는지 확인
+		List<LocalDateTime> timestamps = results.stream()
+			.map(QuizResponseDto::getCreatedAt)
+			.collect(Collectors.toList());
+
+		List<LocalDateTime> sorted = new ArrayList<>(timestamps);
+		sorted.sort(Comparator.naturalOrder());
+
+		assertThat(timestamps).isEqualTo(sorted);
+		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+
+	}
+
+	@Nested
+	@DisplayName("카테고리 id 별로 정렬(가나다순) 자료 조회 성공")
+	@Test
+	void findAllByUserKo() {
+		//given
+
+		SortType type = SortType.KO_ASC;
+		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		//when
+		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		//then
+		//최신순으로 정렬되었는지 확인
+		List<String> questions = results.stream()
+			.map(QuizResponseDto::getQuestion)
+			.collect(Collectors.toList());
+
+		List<String> sorted = new ArrayList<>(questions);
+		sorted.sort(Collator.getInstance(Locale.KOREA));
+
+		assertThat(questions).isEqualTo(sorted);
+		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+
+	}
+
+	@Nested
+	@DisplayName("카테고리 id 별로 정렬(알파벳순) 자료 조회 성공")
+	@Test
+	void findAllByUserEn() {
+		//given
+
+		SortType type = SortType.EN_ASC;
+		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		//when
+		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		//then
+		//최신순으로 정렬되었는지 확인
+		List<String> questions = results.stream()
+			.map(QuizResponseDto::getQuestion)
+			.collect(Collectors.toList());
+
+		List<String> sorted = new ArrayList<>(questions);
+		sorted.sort(Comparator.naturalOrder());
+
+		assertThat(questions).isEqualTo(sorted);
+		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+
+	}
+
 }
