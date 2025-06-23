@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnNotWarDeployment;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.memo.category.dto.ListResponse;
 import com.memo.category.entity.Category;
 import com.memo.category.repository.CategoryRepository;
 import com.memo.common.enums.SortType;
@@ -33,6 +34,7 @@ import com.memo.common.exception.CustomException;
 import com.memo.common.exception.ExceptionType;
 import com.memo.quiz.DTO.CreateQuizRequestDto;
 import com.memo.quiz.DTO.ModifiedQuizRequestDto;
+import com.memo.quiz.DTO.QuizByCategoryResponseDto;
 import com.memo.quiz.DTO.QuizResponseDto;
 import com.memo.quiz.entity.Quiz;
 import com.memo.quiz.entity.Status;
@@ -62,8 +64,9 @@ class QuizServiceTest {
 
 
 	Category category;
+	Category c1,c2;
 	Category deltedCategory;
-	Quiz found1, found2;
+	Quiz found1, found2, q1,q2, q3;
 	ModifiedQuizRequestDto modifiedRequest;
 	CreateQuizRequestDto quiz;
 	Status status = Status.NONE;
@@ -85,15 +88,13 @@ class QuizServiceTest {
 		ReflectionTestUtils.setField(category, "id", 1L);
 		ReflectionTestUtils.setField(category, "isDeleted", false);
 		ReflectionTestUtils.setField(category, "name", categoryStr);
-
-
-
-
+		// ReflectionTestUtils.setField(category, "quizzes", new ArrayList<>(List.of(found1, found2)));
 		found1 = Quiz.builder()
 			.category(category) //카테고리가 isDeleted = true이면 null 이어야함
 			.user(user)
 			.question("한글english")
 			.createdAt(LocalDateTime.of(2025, APRIL, 20, 4, 23))
+			.isDeleted(false)
 			.build();
 
 
@@ -102,8 +103,46 @@ class QuizServiceTest {
 			.user(user)
 			.question("english한글")
 			.createdAt(LocalDateTime.of(2025, JUNE, 23, 4, 23))
+			.isDeleted(false)
 			.build();
 
+		c1 = new Category();
+		ReflectionTestUtils.setField(c1, "name", "다른 카테고리");
+		ReflectionTestUtils.setField(c1, "user", user);
+
+
+		c2 = new Category();
+		ReflectionTestUtils.setField(c1, "name", "또 다른 카테고리");
+		ReflectionTestUtils.setField(c1, "user", user);
+
+		q1 = Quiz.builder()
+			.category(c1) //카테고리가 isDeleted = true이면 null 이어야함
+			.user(user)
+			.question("english한글")
+			.createdAt(LocalDateTime.of(2025, JUNE, 23, 4, 23))
+			.isDeleted(false)
+			.build();
+
+		q2 = Quiz.builder()
+			.user(user)
+			.category(c1)
+			.question("한글english한글")
+			.createdAt(LocalDateTime.of(2025, JUNE, 23, 4, 23))
+			.isDeleted(false)
+			.build();
+
+		q3 = Quiz.builder()
+			.user(user)
+			.category(c2)
+			.question("Eenglish한글")
+			.createdAt(LocalDateTime.of(2025, JUNE, 23, 4, 23))
+			.isDeleted(false)
+			.build();
+		category.getQuizzes().add(found1);
+		category.getQuizzes().add(found2);
+		c1.getQuizzes().add(q1);
+		c1.getQuizzes().add(q2);
+		c2.getQuizzes().add(q3);
 	}
 
 	@Nested
@@ -409,12 +448,22 @@ class QuizServiceTest {
 	void findByUser() {
 		//given
 		SortType type = SortType.CREATED_AT_DESC;
-		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		// ReflectionTestUtils.setField(category, "quizzes", new ArrayList<>(List.of(found1, found2)));
+		// ReflectionTestUtils.setField(c1, "quizzes", new ArrayList<>(List.of(q1, q2)));
+		// ReflectionTestUtils.setField(c2, "quizzes", new ArrayList<>(List.of(q3)));
+		// category.getQuizzes().add(found1);
+		// category.getQuizzes().add(found2);
+		// c1.getQuizzes().add(q1);
+		// c1.getQuizzes().add(q2);
+		// c2.getQuizzes().add(q3);
+
+		doReturn(new ArrayList<>(List.of(category, c1, c2))).when(categoryRepository)
+			.findByUserIdAndIsDeletedFalse(user.getId());
 		//when
-		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		ListResponse<QuizByCategoryResponseDto> results = quizService.findByUser(user, type);
 		//then
 		//최신순으로 정렬되었는지 확인
-		List<LocalDateTime> timestamps = results.stream()
+		List<LocalDateTime> timestamps = results.getResponse().get(0).getQuizzes().stream()
 			.map(QuizResponseDto::getCreatedAt)
 			.collect(Collectors.toList());
 
@@ -422,7 +471,7 @@ class QuizServiceTest {
 		sorted.sort(Comparator.reverseOrder());
 
 		assertThat(timestamps).isEqualTo(sorted);
-		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+		verify(categoryRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
 	}
 
 	@Nested
@@ -431,12 +480,13 @@ class QuizServiceTest {
 	void findAllByUserCreatedAtAsc() {
 		//given
 		SortType type = SortType.CREATED_AT_ASC;
-		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		doReturn(new ArrayList<>(List.of(category, c1, c2))).when(categoryRepository)
+			.findByUserIdAndIsDeletedFalse(user.getId());
 		//when
-		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		ListResponse<QuizByCategoryResponseDto> results = quizService.findByUser(user, type);
 		//then
 		//최신순으로 정렬되었는지 확인
-		List<LocalDateTime> timestamps = results.stream()
+		List<LocalDateTime> timestamps = results.getResponse().get(0).getQuizzes().stream()
 			.map(QuizResponseDto::getCreatedAt)
 			.collect(Collectors.toList());
 
@@ -444,7 +494,7 @@ class QuizServiceTest {
 		sorted.sort(Comparator.naturalOrder());
 
 		assertThat(timestamps).isEqualTo(sorted);
-		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+		verify(categoryRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
 
 	}
 
@@ -455,12 +505,13 @@ class QuizServiceTest {
 		//given
 
 		SortType type = SortType.KO_ASC;
-		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		doReturn(new ArrayList<>(List.of(category, c1, c2))).when(categoryRepository)
+			.findByUserIdAndIsDeletedFalse(user.getId());
 		//when
-		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		ListResponse<QuizByCategoryResponseDto> results = quizService.findByUser(user, type);
 		//then
 		//최신순으로 정렬되었는지 확인
-		List<String> questions = results.stream()
+		List<String> questions = results.getResponse().get(0).getQuizzes().stream()
 			.map(QuizResponseDto::getQuestion)
 			.collect(Collectors.toList());
 
@@ -468,7 +519,7 @@ class QuizServiceTest {
 		sorted.sort(Collator.getInstance(Locale.KOREA));
 
 		assertThat(questions).isEqualTo(sorted);
-		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+		verify(categoryRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
 
 	}
 
@@ -477,14 +528,14 @@ class QuizServiceTest {
 	@Test
 	void findAllByUserEn() {
 		//given
-
 		SortType type = SortType.EN_ASC;
-		doReturn(new ArrayList<>(List.of(found1, found2))).when(quizRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		doReturn(new ArrayList<>(List.of(category, c1, c2))).when(categoryRepository)
+			.findByUserIdAndIsDeletedFalse(user.getId());
 		//when
-		List<QuizResponseDto> results = quizService.findByUser(user, type);
+		ListResponse<QuizByCategoryResponseDto> results = quizService.findByUser(user, type);
 		//then
 		//최신순으로 정렬되었는지 확인
-		List<String> questions = results.stream()
+		List<String> questions = results.getResponse().get(0).getQuizzes().stream()
 			.map(QuizResponseDto::getQuestion)
 			.collect(Collectors.toList());
 
@@ -492,8 +543,74 @@ class QuizServiceTest {
 		sorted.sort(Comparator.naturalOrder());
 
 		assertThat(questions).isEqualTo(sorted);
-		verify(quizRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
+		verify(categoryRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
 
+	}
+
+	//모든 자료 조회시 카테고리별로 반환하는게 가독성에 좋음
+	@Nested
+	@DisplayName("유저가 등록한 자료 카테고리별로 묶어서 반환")
+	@Test
+	void findByUserClusteredByCategory() {
+		//given
+		SortType type = SortType.EN_ASC;
+
+		Quiz q1 = Quiz.builder()
+			.category(category)
+			.question("question입니다.")
+			.user(user)
+			.isDeleted(false)
+			.build();
+		Quiz q2 = Quiz.builder()
+			.category(category)
+			.question("한글로 된 질문입니다.")
+			.user(user)
+			.isDeleted(false)
+			.build();
+		category.getQuizzes().add(q1);
+		category.getQuizzes().add(q2);
+
+		Category category1 = new Category();
+		ReflectionTestUtils.setField(category1, "name", "다른 카테고리");
+		ReflectionTestUtils.setField(category1, "user", user);
+		Quiz q3 = Quiz.builder()
+			.category(category1)
+			.question("question입니다.")
+			.user(user)
+			.isDeleted(false)
+			.build();
+		Quiz q4 = Quiz.builder()
+			.category(category1)
+			.question("question입니다. 질문이요.")
+			.user(user)
+			.isDeleted(false)
+			.build();
+		category1.getQuizzes().add(q3);
+		category1.getQuizzes().add(q4);
+		Category category2 = new Category();
+		ReflectionTestUtils.setField(category2, "name", "또 다른 카테고리");
+		ReflectionTestUtils.setField(category2, "user", user);
+		Quiz q5 = Quiz.builder()
+			.category(category2)
+			.question("question입니다.")
+			.user(user)
+			.isDeleted(false)
+			.build();
+		category2.getQuizzes().add(q5);
+
+		//카테고리 리포지토리에서 유저가 등록한 카테고리 조회후 거기서 자료를 찾는게 더 빠를 듯
+		doReturn(new ArrayList<>(List.of(category, category1, category2))).when(categoryRepository).findByUserIdAndIsDeletedFalse(user.getId());
+		//when
+		ListResponse<QuizByCategoryResponseDto> results = quizService.findByUser(user, type);
+		//then
+		List<String> questions = results.getResponse().get(0).getQuizzes().stream()
+			.map(QuizResponseDto::getQuestion)
+			.collect(Collectors.toList());
+
+		List<String> sorted = new ArrayList<>(questions);
+		sorted.sort(Comparator.naturalOrder());
+		assertThat(questions).isEqualTo(sorted);
+		verify(categoryRepository, times(1)).findByUserIdAndIsDeletedFalse(user.getId());
 	}
 
 }
